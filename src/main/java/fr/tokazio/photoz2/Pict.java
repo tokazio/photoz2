@@ -17,6 +17,10 @@ public class Pict {
 
     public void load() {
         if (!loaded) {
+
+            //TODO swingworker
+            //panel.repaint() quand fini -> loadedListener
+
             try {
                 image = ImageIO.read(file);
             } catch (IOException e) {

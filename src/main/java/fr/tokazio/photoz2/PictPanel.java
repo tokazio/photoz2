@@ -89,7 +89,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
             //On commence vraiment à dessiner à partir de la ligne au dessus de la première
             //pour avoir le bas d'une éventuelle ligne précédente
             if (y > -h - rowMargin) {
-                pict.load();
+                pict.load();//TODO load async avec panel.repaint() quand terminé
                 nbVraimentDessinee++;
                 g.setColor(Color.LIGHT_GRAY);
                 g.fillRect(x, y, w, (int) h);
@@ -120,7 +120,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         int totRow = (int) Math.ceil(pictList.size() / (float) nbX);//nombre total de ligne d'image dans la liste
         int totY = (int) (totRow * (h + rowMargin));//hauteur total en px
         maxY = totY - panelHeight;//hauteur max de scroll en pi
-        System.out.println(totRow + " row in total (" + totY + "px)");
+        //System.out.println(totRow + " row in total (" + totY + "px)");
 
 
         int pl = panelHeight - 2 * sw;//hauteur entre les buts up et down
@@ -128,7 +128,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         //int sh = pl;//par défaut la plage dispo
         //sh = sh * (nbShow / pictList.size());//finalement en % du nombre de lignes visibles
         int sh = (int) ((panelHeight / (float) totY) * panelHeight); //tester hauteurPanel/hauteurMax
-        System.out.println(panelHeight + " visible sur " + totY);
+        //System.out.println(panelHeight + " visible sur " + totY);
 
         //position de la scrollbar
         int sp = (int) ((startAtRow / ((float) totRow + 1)) * pl);
