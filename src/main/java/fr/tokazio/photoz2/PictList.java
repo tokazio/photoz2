@@ -1,6 +1,7 @@
 package fr.tokazio.photoz2;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class PictList {
@@ -22,4 +23,35 @@ public class PictList {
     public Pict get(int i) {
         return internal.get(i);
     }
+
+    public Pict load(int id, int w, int h) {
+        final Pict p = internal.get(id);
+        p.load(w, h);
+        return p;
+    }
+
+    public void stopLoading() {
+        for (Pict p : internal) {
+            unload(p);
+        }
+    }
+
+    public void unload(Pict pict) {
+        pict.unload();
+    }
+
+    public int pendingCount() {
+        return getPending().size();
+    }
+
+    private List<Pict> getPending() {
+        List<Pict> out = new LinkedList<>();
+        for (Pict p : internal) {
+            if (p.isPending()) {
+                out.add(p);
+            }
+        }
+        return out;
+    }
+
 }
