@@ -37,7 +37,7 @@ public class PictList {
     }
 
     public void unload(Pict pict) {
-        pict.unload();
+        pict.stopLoad();
     }
 
     public int pendingCount() {

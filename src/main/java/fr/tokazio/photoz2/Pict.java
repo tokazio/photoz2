@@ -100,7 +100,7 @@ public class Pict {
         return this;
     }
 
-    public void unload() {
+    public void stopLoad() {
         if (State.ERROR.equals(state)) {
             return;
         }
@@ -184,6 +184,7 @@ public class Pict {
 
         public void imageComplete(ImageReader source) {
             //System.out.println("image complete " + source);
+            publish(100f);
         }
 
         public void imageProgress(ImageReader source, float percentageDone) {
@@ -193,6 +194,7 @@ public class Pict {
 
         public void imageStarted(ImageReader source, int imageIndex) {
             //System.out.println("image #" + imageIndex + " started " + source);
+            publish(0f);
         }
 
         public void readAborted(ImageReader source) {

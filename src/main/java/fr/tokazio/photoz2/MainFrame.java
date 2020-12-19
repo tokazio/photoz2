@@ -64,6 +64,8 @@ public class MainFrame implements ComponentListener {
         slider.setMaximum(400);
         slider.setValue(100);
 
+        //TODO slider change le nb de colonne (pas la largeur d'image)
+
         //+=======================================================================
 
 

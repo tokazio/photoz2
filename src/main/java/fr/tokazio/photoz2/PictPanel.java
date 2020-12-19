@@ -165,7 +165,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
                     g.setColor(Color.GRAY);
                     g.drawRect(x, y, w, (int) h);
                 }
-                if (!pict.isLoaded()) {
+                if (!pict.isLoaded() && pict.getProgress() < 100) {
                     g.setColor(Color.GRAY);
                     g.fillRect(x, y, (int) (w * (pict.getProgress() / 100)), (int) h);
                     g.setColor(Color.DARK_GRAY);
