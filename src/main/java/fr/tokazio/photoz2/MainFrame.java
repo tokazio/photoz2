@@ -12,7 +12,7 @@ public class MainFrame implements ComponentListener {
 
     public MainFrame() {
         this.frame = new JFrame();
-        frame.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        frame.setDefaultCloseOperation(JDialog.EXIT_ON_CLOSE);
 
         frame.setLayout(new BorderLayout());
 
