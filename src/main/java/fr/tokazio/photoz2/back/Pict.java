@@ -1,4 +1,4 @@
-package fr.tokazio.photoz2;
+package fr.tokazio.photoz2.back;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -174,8 +174,8 @@ public class Pict {
 
         private Image read(SwingWorker<Void, Float> sw) throws IOException {
             FileInputStream fin = new FileInputStream(pict.file);//"a.gif");
-            Iterator readers = ImageIO.getImageReadersBySuffix(pict.getExt().replace(".", "").toUpperCase());
-            ImageReader imageReader = (ImageReader) readers.next();
+            Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pict.getExt().replace(".", "").toUpperCase());
+            ImageReader imageReader = readers.next();
             ImageInputStream iis = ImageIO.createImageInputStream(fin);
             imageReader.setInput(iis, false);
             imageReader.addIIOReadProgressListener(this);

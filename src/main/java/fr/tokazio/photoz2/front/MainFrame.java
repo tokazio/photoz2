@@ -1,4 +1,7 @@
-package fr.tokazio.photoz2;
+package fr.tokazio.photoz2.front;
+
+import fr.tokazio.photoz2.back.PictCollect;
+import fr.tokazio.photoz2.back.VirtualFolder;
 
 import javax.swing.*;
 import java.awt.*;
@@ -7,11 +10,13 @@ import java.awt.event.ComponentListener;
 
 public class MainFrame implements ComponentListener {
 
+    private static final String JSON_FILE = "folders.json";
     private final JFrame frame;
     private final PictPanel pictPanel;
 
     public MainFrame() {
         this.frame = new JFrame();
+        frame.setTitle("Photoz 2");
         frame.setDefaultCloseOperation(JDialog.EXIT_ON_CLOSE);
 
         frame.setLayout(new BorderLayout());
@@ -20,6 +25,13 @@ public class MainFrame implements ComponentListener {
         frame.add(left, BorderLayout.WEST);
         left.setPreferredSize(new Dimension(200, 0));
         left.setBackground(Color.DARK_GRAY);
+        left.setLayout(new BorderLayout());
+
+        DynamicTree tree = new DynamicTree();
+        left.add(tree, BorderLayout.CENTER);
+
+        JButton addFolder = new JButton("+");
+        left.add(addFolder, BorderLayout.SOUTH);
 
         JPanel center = new JPanel();
         center.setLayout(new BorderLayout());
@@ -82,6 +94,11 @@ public class MainFrame implements ComponentListener {
             }
         });
 
+        addFolder.addActionListener(e -> {
+            String folderName = JOptionPane.showInputDialog("Nom du dossier: ");
+            tree.addToSelected(new VirtualFolder(folderName), false);
+            UIUtil.expandAllNodes(tree.asTree(), 0, tree.getRowCount());
+        });
 
         //+=======================================================================
 
@@ -93,6 +110,8 @@ public class MainFrame implements ComponentListener {
         frame.addComponentListener(this);
 
         pictPanel.loadFiles(new PictCollect().all());
+
+        //tree.load(JSON_FILE);
     }
 
     public void show() {

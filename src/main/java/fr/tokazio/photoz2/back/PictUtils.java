@@ -1,4 +1,4 @@
-package fr.tokazio.photoz2;
+package fr.tokazio.photoz2.back;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,9 +10,9 @@ public class PictUtils {
     }
 
     public static Image getScaledImage(final Image srcImg, final int w, final int h) {
-        Dimension newDim = getScaledDimension(new Dimension(srcImg.getWidth(null), srcImg.getHeight(null)), new Dimension(w, h));
-        BufferedImage resizedImg = new BufferedImage((int) newDim.getWidth(), (int) newDim.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = resizedImg.createGraphics();
+        final Dimension newDim = getScaledDimension(new Dimension(srcImg.getWidth(null), srcImg.getHeight(null)), new Dimension(w, h));
+        final BufferedImage resizedImg = new BufferedImage((int) newDim.getWidth(), (int) newDim.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        final Graphics2D g2 = resizedImg.createGraphics();
         g2.setComposite(AlphaComposite.Src);
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);

@@ -1,4 +1,6 @@
-package fr.tokazio.photoz2;
+package fr.tokazio.photoz2.back;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -6,6 +8,7 @@ import java.util.List;
 
 public class PictList {
 
+    @JsonProperty
     private final List<Pict> internal = new ArrayList<>();
 
     public List<Pict> all() {
@@ -45,7 +48,7 @@ public class PictList {
     }
 
     private List<Pict> getPending() {
-        List<Pict> out = new LinkedList<>();
+        final List<Pict> out = new LinkedList<>();
         for (Pict p : internal) {
             if (p.isPending()) {
                 out.add(p);

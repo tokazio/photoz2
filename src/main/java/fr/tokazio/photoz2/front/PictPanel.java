@@ -1,4 +1,7 @@
-package fr.tokazio.photoz2;
+package fr.tokazio.photoz2.front;
+
+import fr.tokazio.photoz2.back.Pict;
+import fr.tokazio.photoz2.back.PictList;
 
 import javax.swing.*;
 import java.awt.*;
