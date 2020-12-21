@@ -14,7 +14,7 @@ public class VirtualFolder {
     @JsonProperty
     private final VirtualFolderList children = new VirtualFolderList();
     @JsonProperty
-    private final PictList pictures = new PictList();
+    private final PictLoaderList pictures = new PictLoaderList();
     @JsonIgnore
     private final List<VirtualFolderListener> listeners = new LinkedList<>();
     @JsonIgnore
@@ -37,9 +37,9 @@ public class VirtualFolder {
         return parent;
     }
 
-    public void add(final Pict pict) {
-        if (pict != null) {
-            pictures.add(pict);
+    public void add(final PictLoader pictLoader) {
+        if (pictLoader != null) {
+            pictures.add(pictLoader);
         }
     }
 

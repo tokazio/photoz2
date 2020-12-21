@@ -1,7 +1,7 @@
 package fr.tokazio.photoz2.front;
 
-import fr.tokazio.photoz2.back.Pict;
-import fr.tokazio.photoz2.back.PictList;
+import fr.tokazio.photoz2.back.PictLoader;
+import fr.tokazio.photoz2.back.PictLoaderList;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,13 +10,13 @@ import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
-public class PictPanel implements MouseListener, MouseWheelListener {
+public class PictPanel implements MouseListener, MouseWheelListener, MouseMotionListener {
 
     private final JPanel panel;
 
-    private final PictList pictList = new PictList();
+    private final PictLoaderList pictLoaderList = new PictLoaderList();
 
-    private final List<LoadingListener> loadingListeners = new LinkedList<>();
+    private final List<PictLoadingListener> pictLoadingListeners = new LinkedList<>();
     int maxY = 0;
 
     int panelWidth = 1;//avoid /0
@@ -32,6 +32,9 @@ public class PictPanel implements MouseListener, MouseWheelListener {
     boolean firstLoad = true;
     long lastLoadAt;
     long endScrollAt;
+    private final List<Point> selection = new LinkedList<>();
+    private Point pressedAt;
+    private Point rectTo;
 
     public PictPanel() {
         this.panel = new JPanel() {
@@ -51,6 +54,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         this.panel.addMouseListener(this);
         this.panel.addMouseWheelListener(this);
         //TODO drag scroll bar
+        this.panel.addMouseMotionListener(this);
 
         //detection de la fin du scroll pour ne pas maj trop souvent
         final Timer timer = new Timer(35, e -> {
@@ -65,46 +69,62 @@ public class PictPanel implements MouseListener, MouseWheelListener {
 
     //Stop le chargement de toutes les images
     private void stopLoad() {
-        pictList.stopLoading();
+        pictLoaderList.stopLoading();
         System.out.println("Stoped loading");
     }
 
-    //Lance le chargement des images dans la fenêtre
-    private void load() {
-        firstLoad = false;
-
-        //Nombre de colonnes
+    private int nbCol() {
         int nbX = ((panelWidth - marginL - marginR) / w) - 1;
         if (nbX < 1) {
             nbX = 1;
         }
-        //Nombre de lignes
-        int nbY = (int) Math.ceil((panelHeight - rowMargin * 2) / h);
+        return nbX;
+    }
+
+    private float nbRowInPanel() {
+        return (float) Math.ceil((panelHeight - rowMargin * 2) / h);
+    }
+
+    private int firstRowInPanel() {
+        return (int) ((Math.abs(scrollY)) / (h + rowMargin));
+    }
+
+    private int colMargin() {
+        final int nbX = nbCol();
+        return ((panelWidth - marginL - marginR) - (nbX * w)) / nbX;
+    }
+
+    //Lance le chargement des images visibles dans le panel
+    private void load() {
+        firstLoad = false;
+
+        int nbX = nbCol();
+        int nbY = (int) nbRowInPanel();
         System.out.println(nbX + " col(s), " + nbY + " line(s)");
 
         //id de la 1ère ligne à dessiner
-        int startAtRow = (int) ((Math.abs(scrollY)) / (h + rowMargin));
+        int startAtRow = firstRowInPanel();
 
-        //nb de lignes affichées
+        //nb de photos affichées
         int nbShow = (int) (nbY * nbX);
 
         int imgStart = startAtRow * nbX;
         int imgEnd = imgStart + nbShow - 1;// pictList.size() - 1;
 
         //Comme on calcul à la ligne, il se peut que la dernière ne soit pas complète
-        if (imgEnd > pictList.size() - 1) {
-            imgEnd = pictList.size() - 1;
+        if (imgEnd > pictLoaderList.size() - 1) {
+            imgEnd = pictLoaderList.size() - 1;
         }
 
-        doLoad("", imgStart, imgEnd);
+        doLoad(imgStart, imgEnd);
     }
 
-    private void doLoad(String str, int imgStart, int imgEnd) {
+    private void doLoad(int imgStart, int imgEnd) {
         lastLoadAt = System.currentTimeMillis();
-        System.out.println("Load " + str + " from " + imgStart + " to " + imgEnd);
+        System.out.println("Load from " + imgStart + " to " + imgEnd);
         boolean fired = false;
         for (int i = imgStart; i <= imgEnd; i++) {
-            pictList.load(i, w, (int) h);
+            pictLoaderList.load(i, w, (int) h);
             if (!fired) {
                 fired = true;
                 firePendingChanged();
@@ -127,26 +147,23 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         int colMargin = marginL;
         int x = colMargin;
 
-        //Nombre de colonnes
-        int nbX = ((panelWidth - marginL - marginR) / w) - 1;
-        if (nbX < 1) {
-            nbX = 1;
-        }
-        //Nombre de lignes
-        float nbY = (panelHeight - rowMargin * 2) / h;
-
+        int nbX = nbCol();
 
         //position y de départ du dessin de la grille
         int y = scrollY + rowMargin;
         //marge entre colonne pour passer en largeur
-        colMargin = ((panelWidth - marginL - marginR) - (nbX * w)) / nbX;
+        colMargin = colMargin();
 
         //pour simplification on part toujours de la 1ère image, le must serait de ne s'occuper que de celle à afficher vraiment
         //on s'arrête quand même avant de calculer/afficher celles qui sont trop basse
         int nbVraimentDessinee = 0;
         int i = 0;
-        while (y < panelHeight && i < pictList.size()) {
-            Pict pict = pictList.get(i);
+        while (y < panelHeight && i < pictLoaderList.size()) {
+            PictLoader pictLoader = pictLoaderList.get(i);
+
+            int idY = (int) (i / (float) nbX);
+            int idX = i - (idY * nbX);
+            System.out.println("Drawing " + idX + "," + idY);
 
             //passage à la ligne, revient à la 1ère colonne
             if (x + w > panelWidth) {
@@ -158,43 +175,72 @@ public class PictPanel implements MouseListener, MouseWheelListener {
             if (y > -h - rowMargin) {
                 nbVraimentDessinee++;
                 g.setColor(Color.LIGHT_GRAY);
-                if (pict.hasError()) {
+                if (pictLoader.hasError()) {
                     g.setColor(Color.RED);
                 }
                 g.fillRect(x, y, w, (int) h);
                 g.setFont(g.getFont().deriveFont(10f));
-                if (pict.asImage() != null) {
-                    g.drawImage(pict.asImage(), x, y, w, (int) h, null);
+                if (pictLoader.asImage() != null) {
+                    g.drawImage(pictLoader.asImage(), x, y, w, (int) h, null);
                     g.setColor(Color.GRAY);
                     g.drawRect(x, y, w, (int) h);
                 }
-                if (!pict.isLoaded() && pict.getProgress() < 100) {
+                if (!pictLoader.isLoaded() && pictLoader.getProgress() < 100) {
                     g.setColor(Color.GRAY);
-                    g.fillRect(x, y, (int) (w * (pict.getProgress() / 100)), (int) h);
+                    g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), (int) h);
                     g.setColor(Color.DARK_GRAY);
-                    String txt = (int) pict.getProgress() + "%";
+                    String txt = (int) pictLoader.getProgress() + "%";
                     int tw = g.getFontMetrics().stringWidth(txt);
                     g.drawString(txt, x + ((w - tw) / 2f), y + ((h - 10) / 2f));
                 }
-                int tw = g.getFontMetrics().stringWidth(pict.getExt());
+                int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
                 g.setColor(Color.GRAY);
                 g.fillRect(x + w - tw - 6, (int) (y + h - 18), tw + 6, 18);
                 g.setColor(Color.WHITE);
-                g.drawString(pict.getExt(), x + w - tw - 3, (int) (y + h - 5));
-                if (pict.hasError()) {
-                    String txt = pict.getError().getMessage();
+                g.drawString(pictLoader.getExt(), x + w - tw - 3, (int) (y + h - 5));
+                if (pictLoader.hasError()) {
+                    String txt = pictLoader.getError().getMessage();
                     tw = g.getFontMetrics().stringWidth(txt);
                     g.setColor(Color.WHITE);
                     g.drawString(txt, x + ((w - tw) / 2f), y + ((h - 10) / 2f));
                 }
                 g.setColor(Color.MAGENTA);
                 g.drawString(i + "", x, y + 20);
+
+                if (selection.contains(new Point(idX, idY))) {
+                    g.setColor(new Color(32, 128, 255));
+                    g.setStroke(new BasicStroke(3));
+                    g.drawRect(x, y, w, (int) h);
+                    g.setStroke(new BasicStroke(1));
+                    g.setColor(new Color(32, 128, 255, 48));
+                    g.fillRect(x, y, w, (int) h);
+                }
+
             } else {
-                pictList.unload(pict);
+                pictLoaderList.unload(pictLoader);
             }
             //colonne suivante
             x += w + colMargin;
             i++;
+
+            if (pressedAt != null && rectTo != null) {
+                int sx = pressedAt.x;
+                if (rectTo.x < pressedAt.x) {
+                    sx = rectTo.x;
+                }
+                int sy = pressedAt.y;
+                if (rectTo.y < pressedAt.y) {
+                    sy = rectTo.y;
+                }
+                int sw = Math.abs(rectTo.x - pressedAt.x);
+                int sh = Math.abs(rectTo.y - pressedAt.y);
+                g.setColor(new Color(32, 128, 255));
+                g.setStroke(new BasicStroke(1));
+                g.drawRect(sx, sy, sw, sh);
+                g.setColor(new Color(32, 128, 255, 24));
+                g.fillRect(sx, sy, sw, sh);
+            }
+
         }
 
         final long end = System.currentTimeMillis();
@@ -203,21 +249,18 @@ public class PictPanel implements MouseListener, MouseWheelListener {
 
         //scroll
 
-        //TODO bug sur la position quand on arrive en bas
         //TODO si on est en bas et qu'on resize il faudrait repositionner les scrolls sinon c'est la merde à l'affichage
 
         int sw = 20;//scroll width
         int sx = panelWidth - sw;//scroll position x
 
-        int totRow = (int) Math.ceil(pictList.size() / (float) nbX);//nombre total de ligne d'image dans la liste
+        int totRow = (int) Math.ceil(pictLoaderList.size() / (float) nbX);//nombre total de ligne d'image dans la liste
         int totY = (int) (totRow * (h + rowMargin));//hauteur total en px
-        maxY = totY - panelHeight;//hauteur max de scroll en pi
-        //System.out.println(totRow + " row in total (" + totY + "px)");
-
+        maxY = totY - panelHeight;//hauteur max de scroll en px
 
         int pl = panelHeight - 2 * sw;//hauteur entre les buts up et down
         //hauteur de la barre
-        int sh = (int) ((panelHeight / (float) totY) * pl); //tester hauteurPanel/hauteurMax
+        int sh = (int) ((panelHeight / (float) totY) * pl);
 
         //position de la scrollbar
         int sp = (int) ((Math.abs(scrollY) / (float) totY) * pl);
@@ -245,7 +288,7 @@ public class PictPanel implements MouseListener, MouseWheelListener {
     public void loadFiles(List<File> in) {
         int i = 0;
         for (File f : in) {
-            pictList.add(new Pict(i++, f).addLoadedListener((p) -> {
+            pictLoaderList.add(new PictLoader(i++, f).addLoadedListener((p) -> {
                 System.out.println("Loading ended for #" + p.getId());
                 firePendingChanged();
                 panel.repaint();
@@ -255,22 +298,22 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         }
     }
 
-    public PictPanel addLoadingListener(LoadingListener l) {
+    public PictPanel addLoadingListener(final PictLoadingListener l) {
         if (l != null) {
-            loadingListeners.add(l);
+            pictLoadingListeners.add(l);
         }
         return this;
     }
 
     private void firePendingChanged() {
-        if (pictList.pendingCount() == 0) {
+        if (pictLoaderList.pendingCount() == 0) {
             System.out.println("No more pending");
-            for (LoadingListener l : loadingListeners) {
+            for (PictLoadingListener l : pictLoadingListeners) {
                 l.onEnd();
             }
         } else {
-            System.out.println("Pending " + pictList.pendingCount());
-            for (LoadingListener l : loadingListeners) {
+            System.out.println("Pending " + pictLoaderList.pendingCount());
+            for (PictLoadingListener l : pictLoadingListeners) {
                 l.onStart();
             }
         }
@@ -297,21 +340,87 @@ public class PictPanel implements MouseListener, MouseWheelListener {
 
     }
 
-    private void scrollDown(int scrollAmount) {
-        scrollY -= scrollAmount;
-        if (scrollY < -maxY) {
-            scrollY = -maxY;
+    private Point toGrid(Point pxPoint, boolean withMargin) {
+        int colMargin = colMargin();
+        int xAt = ((int) pxPoint.getX() - marginL) / (w + colMargin);
+        int l = marginL + xAt * (w + colMargin);
+        int r = l + w;
+        if (!withMargin && (pxPoint.getX() < l || pxPoint.getX() > r)) {
+            xAt = -1;
         }
+
+        int yAt = ((int) (pxPoint.getY() - rowMargin) / (int) (h + rowMargin));
+        int t = (int) (rowMargin + yAt * (h + rowMargin));
+        int b = t + w;
+        if (!withMargin && (pxPoint.getY() < t || pxPoint.getY() > b)) {
+            yAt = -1;
+        }
+
+        return new Point(xAt, yAt);
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
-
+        pressedAt = e.getPoint();
+        rectTo = null;
+        if (!e.isShiftDown()) {
+            selection.clear();
+        }
     }
 
     @Override
-    public void mouseReleased(MouseEvent e) {
+    public void mouseReleased(final MouseEvent e) {
+        if (pressedAt != null) {
 
+            if (rectTo != null) {
+                final Point from = toGrid(pressedAt, true);
+                final Point to = toGrid(rectTo, true);
+
+                int fx = from.x;
+                int ex = to.x;
+                if (to.x < from.x) {
+                    fx = to.x;
+                    ex = from.x;
+                }
+
+                int fy = from.y;
+                int ey = to.y;
+                if (to.y < from.y) {
+                    fy = to.y;
+                    ey = from.y;
+                }
+
+                for (int sx = fx; sx <= ex; sx++) {
+                    for (int sy = fy; sy <= ey; sy++) {
+                        Point p = new Point(sx, sy);
+                        if (selection.contains(p)) {
+                            selection.remove(p);
+                        } else {
+                            selection.add(p);
+                        }
+                    }
+                }
+            } else {
+
+                final Point gridPoint = toGrid(e.getPoint(), false);
+                int xAt = gridPoint.x;
+                int yAt = gridPoint.y;
+
+                System.out.println("Click at " + xAt + "," + yAt);
+
+                if (xAt >= 0 && yAt >= 0) {
+                    final Point p = new Point(xAt, yAt);
+                    if (selection.contains(p)) {
+                        selection.remove(p);
+                    } else {
+                        selection.add(p);
+                    }
+                }
+            }
+            System.out.println(selection);
+            panel.repaint();
+            pressedAt = null;
+        }
     }
 
     @Override
@@ -328,6 +437,13 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         scrollY += scrollAmount;
         if (scrollY > 0) {
             scrollY = 0;
+        }
+    }
+
+    private void scrollDown(int scrollAmount) {
+        scrollY -= scrollAmount;
+        if (scrollY < -maxY) {
+            scrollY = -maxY;
         }
     }
 
@@ -365,10 +481,17 @@ public class PictPanel implements MouseListener, MouseWheelListener {
         }
     }
 
-    public interface LoadingListener {
 
-        void onStart();
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        if (pressedAt != null) {
+            rectTo = e.getPoint();
+            panel.repaint();
+        }
+    }
 
-        void onEnd();
+    @Override
+    public void mouseMoved(MouseEvent e) {
+
     }
 }

@@ -82,7 +82,7 @@ public class MainFrame implements ComponentListener {
 
 
         slider.addChangeListener(e -> pictPanel.setPictSize(slider.getValue()));
-        pictPanel.addLoadingListener(new PictPanel.LoadingListener() {
+        pictPanel.addLoadingListener(new PictLoadingListener() {
             @Override
             public void onStart() {
                 vide1.setText("Chargement...");

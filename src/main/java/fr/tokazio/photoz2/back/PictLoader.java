@@ -13,7 +13,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Pict {
+public class PictLoader {
 
     private final int id;
     private final List<LoadedListener> loadedListeners = new LinkedList<>();
@@ -25,7 +25,7 @@ public class Pict {
     private volatile State state = State.NONE;
     private PictWorker sw1;
 
-    public Pict(final int id, final File file) {
+    public PictLoader(final int id, final File file) {
         this.id = id;
         this.file = file;
     }
@@ -82,7 +82,7 @@ public class Pict {
         return file.getName().substring(file.getName().lastIndexOf('.')).toLowerCase();
     }
 
-    public Pict addLoadedListener(LoadedListener loadedListener) {
+    public PictLoader addLoadedListener(LoadedListener loadedListener) {
         if (loadedListener != null) {
             loadedListeners.add(loadedListener);
         }
@@ -93,7 +93,7 @@ public class Pict {
         return image;
     }
 
-    public Pict addProgressListener(ProgressListener progressListener) {
+    public PictLoader addProgressListener(ProgressListener progressListener) {
         if (progressListener != null) {
             progressListeners.add(progressListener);
         }
@@ -128,53 +128,53 @@ public class Pict {
 
     public interface LoadedListener {
 
-        void onLoaded(Pict pict);
+        void onLoaded(PictLoader pictLoader);
     }
 
     public interface ProgressListener {
 
-        void onProgress(Pict pict, float percent);
+        void onProgress(PictLoader pictLoader, float percent);
     }
 
     public static class PictWorker extends SwingWorker<Void, Float> implements IIOReadProgressListener {
 
-        private final Pict pict;
+        private final PictLoader pictLoader;
 
-        PictWorker(Pict pict) {
-            this.pict = pict;
+        PictWorker(PictLoader pictLoader) {
+            this.pictLoader = pictLoader;
         }
 
         @Override
         protected void process(List<Float> chunks) {
             float i = chunks.get(chunks.size() - 1);
-            pict.progress = i;
-            pict.fireProgress(i);
+            pictLoader.progress = i;
+            pictLoader.fireProgress(i);
         }
 
         @Override
         protected Void doInBackground() {
-            pict.state = State.LOADING;
+            pictLoader.state = State.LOADING;
             try {
                 //image = PictUtils.getScaledImage(ImageIO.read(file), w, h);
-                pict.image = PictUtils.getScaledImage(read(this), pict.w, pict.h);
-                pict.state = State.LOADED;
+                pictLoader.image = PictUtils.getScaledImage(read(this), pictLoader.w, pictLoader.h);
+                pictLoader.state = State.LOADED;
             } catch (IOException e) {
-                System.err.println("Error reading pict #" + pict.id);
+                System.err.println("Error reading pict #" + pictLoader.id);
                 e.printStackTrace();
-                pict.state = State.ERROR;
-                pict.error = e;
+                pictLoader.state = State.ERROR;
+                pictLoader.error = e;
             }
             return null;
         }
 
         @Override
         protected void done() {
-            pict.fireLoaded();
+            pictLoader.fireLoaded();
         }
 
         private Image read(SwingWorker<Void, Float> sw) throws IOException {
-            FileInputStream fin = new FileInputStream(pict.file);//"a.gif");
-            Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pict.getExt().replace(".", "").toUpperCase());
+            FileInputStream fin = new FileInputStream(pictLoader.file);//"a.gif");
+            Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pictLoader.getExt().replace(".", "").toUpperCase());
             ImageReader imageReader = readers.next();
             ImageInputStream iis = ImageIO.createImageInputStream(fin);
             imageReader.setInput(iis, false);

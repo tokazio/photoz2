@@ -6,50 +6,50 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class PictList {
+public class PictLoaderList {
 
     @JsonProperty
-    private final List<Pict> internal = new ArrayList<>();
+    private final List<PictLoader> internal = new ArrayList<>();
 
-    public List<Pict> all() {
+    public List<PictLoader> all() {
         return internal;
     }
 
-    public void add(Pict pict) {
-        internal.add(pict);
+    public void add(PictLoader pictLoader) {
+        internal.add(pictLoader);
     }
 
     public int size() {
         return internal.size();
     }
 
-    public Pict get(int i) {
+    public PictLoader get(int i) {
         return internal.get(i);
     }
 
-    public Pict load(int id, int w, int h) {
-        final Pict p = internal.get(id);
+    public PictLoader load(int id, int w, int h) {
+        final PictLoader p = internal.get(id);
         p.load(w, h);
         return p;
     }
 
     public void stopLoading() {
-        for (Pict p : internal) {
+        for (PictLoader p : internal) {
             unload(p);
         }
     }
 
-    public void unload(Pict pict) {
-        pict.stopLoad();
+    public void unload(PictLoader pictLoader) {
+        pictLoader.stopLoad();
     }
 
     public int pendingCount() {
         return getPending().size();
     }
 
-    private List<Pict> getPending() {
-        final List<Pict> out = new LinkedList<>();
-        for (Pict p : internal) {
+    private List<PictLoader> getPending() {
+        final List<PictLoader> out = new LinkedList<>();
+        for (PictLoader p : internal) {
             if (p.isPending()) {
                 out.add(p);
             }
