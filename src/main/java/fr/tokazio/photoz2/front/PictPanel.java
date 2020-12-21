@@ -32,7 +32,8 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     boolean firstLoad = true;
     long lastLoadAt;
     long endScrollAt;
-    private final List<Point> selection = new LinkedList<>();
+
+    private final List<Id> selection = new LinkedList<>();
     private Point pressedAt;
     private Point rectTo;
 
@@ -207,7 +208,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 g.setColor(Color.MAGENTA);
                 g.drawString(i + "", x, y + 20);
 
-                if (selection.contains(new Point(idX, idY))) {
+                if (selection.contains(new Id(i))) {//new Point(idX, idY))) {
                     g.setColor(new Color(32, 128, 255));
                     g.setStroke(new BasicStroke(3));
                     g.drawRect(x, y, w, (int) h);
@@ -340,6 +341,10 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     }
 
+    private int toListId(Point gridPoint) {
+        return gridPoint.y * nbCol() + gridPoint.x;
+    }
+
     private Point toGrid(Point pxPoint, boolean withMargin) {
         int colMargin = colMargin();
         int xAt = ((int) pxPoint.getX() - marginL) / (w + colMargin);
@@ -392,11 +397,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
                 for (int sx = fx; sx <= ex; sx++) {
                     for (int sy = fy; sy <= ey; sy++) {
-                        Point p = new Point(sx, sy);
-                        if (selection.contains(p)) {
-                            selection.remove(p);
+                        final Id id = new Id(toListId(new Point(sx, sy)));
+                        if (selection.contains(id)) {
+                            selection.remove(id);
                         } else {
-                            selection.add(p);
+                            selection.add(id);
                         }
                     }
                 }
@@ -409,11 +414,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 System.out.println("Click at " + xAt + "," + yAt);
 
                 if (xAt >= 0 && yAt >= 0) {
-                    final Point p = new Point(xAt, yAt);
-                    if (selection.contains(p)) {
-                        selection.remove(p);
+                    final Id id = new Id(toListId(new Point(xAt, yAt)));
+                    if (selection.contains(id)) {
+                        selection.remove(id);
                     } else {
-                        selection.add(p);
+                        selection.add(id);
                     }
                 }
             }
