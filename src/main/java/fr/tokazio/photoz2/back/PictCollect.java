@@ -8,11 +8,15 @@ import java.util.List;
 
 public class PictCollect {
 
-    public static final String ROOT = "/users/romain/desktop";//"C:\\Users\\rpetit.GROUPE-WELCOOP\\Downloads";
-
     private static final String[] EXTS = {"PNG", "JPG", "JPEG"};
 
+    private final String folder;
+
+    public PictCollect(String folder) {
+        this.folder = folder;
+    }
+
     public List<File> all() {
-        return new CollectorEngine().dirFilter(d -> true).fileFilter(f -> Arrays.stream(EXTS).anyMatch(f.toString().toUpperCase()::endsWith)).collect(ROOT);
+        return new CollectorEngine().dirFilter(d -> true).fileFilter(f -> Arrays.stream(EXTS).anyMatch(f.toString().toUpperCase()::endsWith)).collect(folder);
     }
 }

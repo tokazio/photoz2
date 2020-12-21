@@ -1,10 +1,12 @@
 package fr.tokazio.photoz2.front;
 
-import fr.tokazio.photoz2.back.PictLoader;
-import fr.tokazio.photoz2.back.PictLoaderList;
+import fr.tokazio.photoz2.Config;
+import fr.tokazio.photoz2.OS;
+import fr.tokazio.photoz2.back.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.dnd.DropTarget;
 import java.awt.event.*;
 import java.io.File;
 import java.util.LinkedList;
@@ -22,20 +24,26 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     int panelWidth = 1;//avoid /0
     int panelHeight = 1;//avoid /0
     int scrollY = 0;
-    float h = 100;//hauteur d'une image
-
+    private final Selection selection = new Selection();
     //TODO tester skija avec opengl
-    int w = 100;//largeur d'une image
     int rowMargin = 20;//espace entre les lignes
+    private final Selection draggingSelection = new Selection();
     int marginL = 20;//marge à gauche
     int marginR = 20;//marge à droite
     boolean firstLoad = true;
     long lastLoadAt;
     long endScrollAt;
-
-    private final List<Id> selection = new LinkedList<>();
+    int nbX = 4;
+    int colMargin = 20;//espace entre les colonnes
     private Point pressedAt;
     private Point rectTo;
+    private Point scrollFrom;
+
+    private PictPanelListener listener;
+    private Point draggingFrom;
+
+    private Point dragTo;
+    private DropListener dropListener;
 
     public PictPanel() {
         this.panel = new JPanel() {
@@ -52,6 +60,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 }
             }
         };
+
         this.panel.addMouseListener(this);
         this.panel.addMouseWheelListener(this);
         //TODO drag scroll bar
@@ -74,32 +83,18 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         System.out.println("Stoped loading");
     }
 
-    private int nbCol() {
-        int nbX = ((panelWidth - marginL - marginR) / w) - 1;
-        if (nbX < 1) {
-            nbX = 1;
-        }
-        return nbX;
-    }
-
     private float nbRowInPanel() {
-        return (float) Math.ceil((panelHeight - rowMargin * 2) / h);
+        return (float) Math.ceil((panelHeight - rowMargin * 2) / (float) w());
     }
 
     private int firstRowInPanel() {
-        return (int) ((Math.abs(scrollY)) / (h + rowMargin));
-    }
-
-    private int colMargin() {
-        final int nbX = nbCol();
-        return ((panelWidth - marginL - marginR) - (nbX * w)) / nbX;
+        return (int) ((Math.abs(scrollY)) / (w() + rowMargin));
     }
 
     //Lance le chargement des images visibles dans le panel
     private void load() {
         firstLoad = false;
 
-        int nbX = nbCol();
         int nbY = (int) nbRowInPanel();
         System.out.println(nbX + " col(s), " + nbY + " line(s)");
 
@@ -120,12 +115,18 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         doLoad(imgStart, imgEnd);
     }
 
+    private int w() {
+        final int t = panelWidth - marginL - marginR;
+        final int w = t / nbX;
+        return w - colMargin;
+    }
+
     private void doLoad(int imgStart, int imgEnd) {
         lastLoadAt = System.currentTimeMillis();
         System.out.println("Load from " + imgStart + " to " + imgEnd);
         boolean fired = false;
         for (int i = imgStart; i <= imgEnd; i++) {
-            pictLoaderList.load(i, w, (int) h);
+            pictLoaderList.load(i, w(), (int) w());
             if (!fired) {
                 fired = true;
                 firePendingChanged();
@@ -137,6 +138,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         return this.panel;
     }
 
+    public PictPanel setListener(PictPanelListener listener) {
+        this.listener = listener;
+        return this;
+    }
+
     private void draw(final Graphics2D g) {
 
         final long start = System.currentTimeMillis();
@@ -145,76 +151,103 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, panelWidth, panelHeight);
 
+        //Selection rect background
+        final Rectangle selectionRect = computeSelectionRect();
+        if (pressedAt != null && rectTo != null) {
+            g.setColor(new Color(148, 180, 255));
+            g.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+        }
+
         int colMargin = marginL;
         int x = colMargin;
 
-        int nbX = nbCol();
+        int w = w();
 
         //position y de départ du dessin de la grille
         int y = scrollY + rowMargin;
-        //marge entre colonne pour passer en largeur
-        colMargin = colMargin();
 
         //pour simplification on part toujours de la 1ère image, le must serait de ne s'occuper que de celle à afficher vraiment
         //on s'arrête quand même avant de calculer/afficher celles qui sont trop basse
         int nbVraimentDessinee = 0;
         int i = 0;
         while (y < panelHeight && i < pictLoaderList.size()) {
+            final Id id = new Id(i);
             PictLoader pictLoader = pictLoaderList.get(i);
-
-            int idY = (int) (i / (float) nbX);
-            int idX = i - (idY * nbX);
-            System.out.println("Drawing " + idX + "," + idY);
+            final boolean isDragging = selection.contains(id) && draggingFrom != null;
 
             //passage à la ligne, revient à la 1ère colonne
             if (x + w > panelWidth) {
                 x = marginL;
-                y += h + rowMargin;
+                y += w + rowMargin;
             }
+
             //On commence vraiment à dessiner à partir de la ligne au dessus de la première
             //pour avoir le bas d'une éventuelle ligne précédente
-            if (y > -h - rowMargin) {
-                nbVraimentDessinee++;
+            if (y > -w - rowMargin) {
+
+                //default background color
                 g.setColor(Color.LIGHT_GRAY);
+                //background color when has error
                 if (pictLoader.hasError()) {
                     g.setColor(Color.RED);
                 }
-                g.fillRect(x, y, w, (int) h);
-                g.setFont(g.getFont().deriveFont(10f));
-                if (pictLoader.asImage() != null) {
-                    g.drawImage(pictLoader.asImage(), x, y, w, (int) h, null);
-                    g.setColor(Color.GRAY);
-                    g.drawRect(x, y, w, (int) h);
-                }
-                if (!pictLoader.isLoaded() && pictLoader.getProgress() < 100) {
-                    g.setColor(Color.GRAY);
-                    g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), (int) h);
-                    g.setColor(Color.DARK_GRAY);
-                    String txt = (int) pictLoader.getProgress() + "%";
-                    int tw = g.getFontMetrics().stringWidth(txt);
-                    g.drawString(txt, x + ((w - tw) / 2f), y + ((h - 10) / 2f));
-                }
-                int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
-                g.setColor(Color.GRAY);
-                g.fillRect(x + w - tw - 6, (int) (y + h - 18), tw + 6, 18);
-                g.setColor(Color.WHITE);
-                g.drawString(pictLoader.getExt(), x + w - tw - 3, (int) (y + h - 5));
-                if (pictLoader.hasError()) {
-                    String txt = pictLoader.getError().getMessage();
-                    tw = g.getFontMetrics().stringWidth(txt);
-                    g.setColor(Color.WHITE);
-                    g.drawString(txt, x + ((w - tw) / 2f), y + ((h - 10) / 2f));
-                }
-                g.setColor(Color.MAGENTA);
-                g.drawString(i + "", x, y + 20);
-
-                if (selection.contains(new Id(i))) {//new Point(idX, idY))) {
-                    g.setColor(new Color(32, 128, 255));
-                    g.setStroke(new BasicStroke(3));
-                    g.drawRect(x, y, w, (int) h);
+                //background color when dragging
+                if (isDragging) {
+                    g.setColor(new Color(200, 200, 200));
+                    g.setStroke(new DashedStroke(3));
+                    g.drawRect(x, y, w, w);
                     g.setStroke(new BasicStroke(1));
-                    g.setColor(new Color(32, 128, 255, 48));
-                    g.fillRect(x, y, w, (int) h);
+                } else {
+                    g.fillRect(x, y, w, w);
+                }
+                //Draw the real image
+                if (!isDragging) {
+                    if (pictLoader.asImage() != null) {
+                        g.drawImage(pictLoader.asImage(), x, y, w, w, null);
+                        g.setColor(Color.GRAY);
+                        g.drawRect(x, y, w, w);
+                        nbVraimentDessinee++;
+                    }
+                    g.setFont(g.getFont().deriveFont(10f));
+                    if (!pictLoader.isLoaded() && pictLoader.getProgress() < 100) {
+                        g.setColor(Color.GRAY);
+                        g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), (int) w);
+                        g.setColor(Color.DARK_GRAY);
+                        String txt = (int) pictLoader.getProgress() + "%";
+                        int tw = g.getFontMetrics().stringWidth(txt);
+                        g.drawString(txt, x + ((w - tw) / 2f), y + ((w - 10) / 2f));
+                    }
+                    int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
+                    g.setColor(Color.GRAY);
+                    g.fillRect(x + w - tw - 6, (int) (y + w - 18), tw + 6, 18);
+                    g.setColor(Color.WHITE);
+                    g.drawString(pictLoader.getExt(), x + w - tw - 3, (int) (y + w - 5));
+                    if (pictLoader.hasError()) {
+                        String txt = pictLoader.getError().getMessage();
+                        tw = g.getFontMetrics().stringWidth(txt);
+                        g.setColor(Color.WHITE);
+                        g.drawString(txt, x + ((w - tw) / 2f), y + ((w - 10) / 2f));
+                    }
+                    g.setColor(Color.MAGENTA);
+                    if (Config.getInstance().debug()) {
+                        g.drawString("#" + i + " (id=" + pictLoader.getId() + ")", x, y + 20);
+                    }
+
+                    //draw selected
+                    if (selection.contains(id) || draggingSelection.contains(id)) {
+                        g.setColor(new Color(32, 128, 255));
+                        g.setStroke(new BasicStroke(3));
+                        g.drawRect(x, y, w, (int) w);
+                        g.setStroke(new BasicStroke(1));
+                        //g.setColor(new Color(32, 128, 255, 48));
+                        //g.fillRect(x, y, w, (int) w);
+                    }
+
+                    //draw drag to bar before the image
+                    if (id.asInt() == toListId(dragTo)) {
+                        g.setColor(new Color(32, 128, 255));
+                        g.fillRect(x - colMargin / 2 - 1, y, 3, w);
+                    }
                 }
 
             } else {
@@ -224,26 +257,13 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             x += w + colMargin;
             i++;
 
+            //Selection rect foreground
             if (pressedAt != null && rectTo != null) {
-                int sx = pressedAt.x;
-                if (rectTo.x < pressedAt.x) {
-                    sx = rectTo.x;
-                }
-                int sy = pressedAt.y;
-                if (rectTo.y < pressedAt.y) {
-                    sy = rectTo.y;
-                }
-                int sw = Math.abs(rectTo.x - pressedAt.x);
-                int sh = Math.abs(rectTo.y - pressedAt.y);
                 g.setColor(new Color(32, 128, 255));
                 g.setStroke(new BasicStroke(1));
-                g.drawRect(sx, sy, sw, sh);
-                g.setColor(new Color(32, 128, 255, 24));
-                g.fillRect(sx, sy, sw, sh);
+                g.drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
             }
-
         }
-
         final long end = System.currentTimeMillis();
         //le dessin ne devrait pas prendre plus de 33ms (30/sec)
         System.out.println(System.currentTimeMillis() + "> Drawn " + nbVraimentDessinee + " images in " + (end - start) + "ms");
@@ -256,7 +276,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         int sx = panelWidth - sw;//scroll position x
 
         int totRow = (int) Math.ceil(pictLoaderList.size() / (float) nbX);//nombre total de ligne d'image dans la liste
-        int totY = (int) (totRow * (h + rowMargin));//hauteur total en px
+        int totY = (int) (totRow * (w + rowMargin));//hauteur total en px
         maxY = totY - panelHeight;//hauteur max de scroll en px
 
         int pl = panelHeight - 2 * sw;//hauteur entre les buts up et down
@@ -286,6 +306,23 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         g.drawRect(sx, panelHeight - sw, sw, sw);
     }
 
+    private Rectangle computeSelectionRect() {
+        if (pressedAt != null && rectTo != null) {
+            int sx = pressedAt.x;
+            if (rectTo.x < pressedAt.x) {
+                sx = rectTo.x;
+            }
+            int sy = pressedAt.y;
+            if (rectTo.y < pressedAt.y) {
+                sy = rectTo.y;
+            }
+            final int sw = Math.abs(rectTo.x - pressedAt.x);
+            final int sh = Math.abs(rectTo.y - pressedAt.y);
+            return new Rectangle(sx, sy, sw, sh);
+        }
+        return new Rectangle(0, 0, 0, 0);
+    }
+
     public void loadFiles(List<File> in) {
         int i = 0;
         for (File f : in) {
@@ -297,6 +334,23 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 panel.repaint();
             }));
         }
+    }
+
+    public void loadFiles(VirtualFolder virtualFolder) {
+        firstLoad = true;
+        pictLoaderList.clear();
+        int i = 0;
+        for (File f : virtualFolder.getImages()) {
+            pictLoaderList.add(new PictLoader(i++, f).addLoadedListener((p) -> {
+                System.out.println("Loading ended for #" + p.getId());
+                firePendingChanged();
+                panel.repaint();
+            }).addProgressListener((p, v) -> {
+                panel.repaint();
+            }));
+        }
+        load();
+        panel.repaint();
     }
 
     public PictPanel addLoadingListener(final PictLoadingListener l) {
@@ -341,12 +395,16 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     }
 
-    private int toListId(Point gridPoint) {
-        return gridPoint.y * nbCol() + gridPoint.x;
+    private int toListId(final Point gridPoint) {
+        if (gridPoint == null) {
+            return -1;
+        }
+        return gridPoint.y * nbX + gridPoint.x;
     }
 
-    private Point toGrid(Point pxPoint, boolean withMargin) {
-        int colMargin = colMargin();
+    private Point toGrid(final Point pxPoint, final boolean withMargin) {
+        int w = w();
+        int h = w;
         int xAt = ((int) pxPoint.getX() - marginL) / (w + colMargin);
         int l = marginL + xAt * (w + colMargin);
         int r = l + w;
@@ -354,10 +412,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             xAt = -1;
         }
 
-        int yAt = ((int) (pxPoint.getY() - rowMargin) / (int) (h + rowMargin));
-        int t = (int) (rowMargin + yAt * (h + rowMargin));
+        int ptY = pxPoint.y - scrollY;
+        int yAt = (ptY - rowMargin) / (h + rowMargin);
+        int t = (rowMargin + yAt * (h + rowMargin));
         int b = t + w;
-        if (!withMargin && (pxPoint.getY() < t || pxPoint.getY() > b)) {
+        if (!withMargin && (ptY < t || ptY > b)) {
             yAt = -1;
         }
 
@@ -366,65 +425,136 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     @Override
     public void mousePressed(MouseEvent e) {
-        pressedAt = e.getPoint();
-        rectTo = null;
-        if (!e.isShiftDown()) {
-            selection.clear();
+        //scroll
+        if (e.getX() > panelWidth - 20) {
+            scrollFrom = e.getPoint();
+            return;
         }
+        //select
+        if (selection.contains(toListId(toGrid(e.getPoint(), false)))) {
+            draggingFrom = e.getPoint();
+        } else {
+            pressedAt = e.getPoint();
+            rectTo = null;
+            if (!e.isControlDown() && !e.isShiftDown()) {
+                selection.clear();
+            }
+        }
+    }
+
+    public PictPanel addDropListener(DropListener l) {
+        this.dropListener = l;
+        return this;
     }
 
     @Override
     public void mouseReleased(final MouseEvent e) {
-        if (pressedAt != null) {
+        final Component root = SwingUtilities.getRoot(panel);
+        final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
+        final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
+        if (c instanceof JTree) {
+            //drag to jtree
 
-            if (rectTo != null) {
-                final Point from = toGrid(pressedAt, true);
-                final Point to = toGrid(rectTo, true);
 
-                int fx = from.x;
-                int ex = to.x;
-                if (to.x < from.x) {
-                    fx = to.x;
-                    ex = from.x;
+            if (dropListener != null) {
+
+                List<File> selectedFiles = new LinkedList<>();
+                for (Id id : selection.all()) {
+                    selectedFiles.add(pictLoaderList.get(id.asInt()).asFile());
                 }
 
-                int fy = from.y;
-                int ey = to.y;
-                if (to.y < from.y) {
-                    fy = to.y;
-                    ey = from.y;
-                }
+                System.out.println("Dropping " + selectedFiles.size());
 
-                for (int sx = fx; sx <= ex; sx++) {
-                    for (int sy = fy; sy <= ey; sy++) {
-                        final Id id = new Id(toListId(new Point(sx, sy)));
-                        if (selection.contains(id)) {
-                            selection.remove(id);
+                boolean dropped = dropListener.dropped(e, p, selectedFiles);
+                if (dropped) {
+                    System.out.println("Dropped successfully");
+                    pictLoaderList.remove(selection);
+                    panel.repaint();
+                }
+            }
+            selection.clear();
+            draggingFrom = null;
+            dragTo = null;
+        } else {
+            if (pressedAt != null) {
+                if (rectTo != null) {
+                    draggingSelection.clear();
+                    detectClickAndDragSelection(selection);
+                } else {
+
+                    final Point gridPoint = toGrid(e.getPoint(), false);
+                    int xAt = gridPoint.x;
+                    int yAt = gridPoint.y;
+
+                    System.out.println("Click at " + xAt + "," + yAt + " (" + toListId(new Point(xAt, yAt)) + ")");
+
+                    if (xAt >= 0 && yAt >= 0) {
+                        if (!selection.isEmpty() && e.isShiftDown()) {
+                            int to = toListId(new Point(xAt, yAt));
+                            int min = selection.getFirst().asInt();
+                            if (to < min) {
+                                min = to;
+                                to = selection.getLast().asInt();
+                            }
+                            for (int i = min; i <= to; i++) {
+                                selection.add(new Id(i));
+                            }
                         } else {
-                            selection.add(id);
+
+                            final Id id = new Id(toListId(new Point(xAt, yAt)));
+                            if (selection.contains(id)) {
+                                selection.remove(id);
+                            } else {
+                                selection.add(id);
+                            }
                         }
                     }
                 }
-            } else {
-
-                final Point gridPoint = toGrid(e.getPoint(), false);
-                int xAt = gridPoint.x;
-                int yAt = gridPoint.y;
-
-                System.out.println("Click at " + xAt + "," + yAt);
-
-                if (xAt >= 0 && yAt >= 0) {
-                    final Id id = new Id(toListId(new Point(xAt, yAt)));
-                    if (selection.contains(id)) {
-                        selection.remove(id);
-                    } else {
-                        selection.add(id);
-                    }
-                }
+                System.out.println("Selection: " + selection);
+                pressedAt = null;
             }
-            System.out.println(selection);
-            panel.repaint();
-            pressedAt = null;
+            if (draggingFrom != null) {
+
+                System.out.println("Move selection " + selection + " to " + dragTo);
+
+                pictLoaderList.move(selection, toListId(dragTo));
+
+                selection.clear();
+
+                draggingFrom = null;
+                dragTo = null;
+            }
+        }
+        panel.repaint();
+    }
+
+    private void detectClickAndDragSelection(final Selection selectTo) {
+        final Point from = toGrid(pressedAt, true);
+        final Point to = toGrid(rectTo, true);
+
+        int fx = from.x;
+        int ex = to.x;
+        if (to.x < from.x) {
+            fx = to.x;
+            ex = from.x;
+        }
+
+        int fy = from.y;
+        int ey = to.y;
+        if (to.y < from.y) {
+            fy = to.y;
+            ey = from.y;
+        }
+
+        for (int sx = fx; sx <= ex; sx++) {
+            for (int sy = fy; sy <= ey; sy++) {
+                final Id id = new Id(toListId(new Point(sx, sy)));
+                //if (selection.contains(id)) {
+                //    selection.remove(id);
+                //} else {
+                selectTo.add(id);
+                //}
+            }
         }
     }
 
@@ -459,18 +589,23 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         } else if (e.getWheelRotation() < 0) {
             stopLoad();
             scrollUp(120);
+            if (OS.isWindows()) {
+                endScrollAt = System.currentTimeMillis();
+            }
         } else if (e.getWheelRotation() > 0) {
             stopLoad();
             scrollDown(120);
+            if (OS.isWindows()) {
+                endScrollAt = System.currentTimeMillis();
+            }
         }
         panel.repaint();
     }
 
-    public void setPictSize(int size) {
-        System.out.println("Set pict size");
+    public void setPictNbOnARow(int nb) {
+        System.out.println("Set pict nb on a row:" + nb);
         stopLoad();
-        this.w = size;
-        this.h = (float) size;
+        this.nbX = nb;
         panel.repaint();
         //load();
         endScrollAt = System.currentTimeMillis();//trigger load() 250ms later max
@@ -480,23 +615,44 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         if (!firstLoad) {
             System.out.println("Resized");
             stopLoad();
-            panel.repaint();
-            //load();
-            endScrollAt = System.currentTimeMillis();//trigger load() 250ms later max
+            scrollDown(0);
+            if (listener != null) {
+                listener.nbPerRowChanged(nbX);//will trigger the repaint via the slider
+            }
         }
-    }
 
+    }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         if (pressedAt != null) {
             rectTo = e.getPoint();
-            panel.repaint();
+            draggingSelection.clear();
+            detectClickAndDragSelection(draggingSelection);
         }
+        if (scrollFrom != null) {
+            int decY = e.getPoint().y - scrollFrom.y;
+            scrollY -= (int) ((decY / (float) panelHeight) * maxY);
+            if (scrollY > 0) {
+                scrollY = 0;
+            }
+            if (scrollY < -maxY) {
+                scrollY = -maxY;
+            }
+            scrollFrom = e.getPoint();
+        }
+        if (draggingFrom != null) {
+            dragTo = toGrid(e.getPoint(), true);
+        }
+        panel.repaint();
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
 
+    }
+
+    public void setDropTarget(DropTarget dropTarget) {
+        panel.setDropTarget(dropTarget);
     }
 }

@@ -9,7 +9,7 @@ import java.util.List;
 public class PictLoaderList {
 
     @JsonProperty
-    private final List<PictLoader> internal = new ArrayList<>();
+    private List<PictLoader> internal = new ArrayList<>();
 
     public List<PictLoader> all() {
         return internal;
@@ -57,4 +57,48 @@ public class PictLoaderList {
         return out;
     }
 
+    public void move(final Selection selection, int dragTo) {
+        if (dragTo < 0) {
+            return;
+        }
+        if (dragTo > selection.getLast().asInt()) {
+            dragTo -= selection.size();
+        }
+        final List<PictLoader> copy = new ArrayList<>(internal.size());
+        for (PictLoader pict : internal) {
+            if (!selection.contains(pict.getId())) {
+                copy.add(pict);
+            }
+        }
+        for (Id id : selection.reversed()) {
+            copy.add(dragTo, internal.get(id.asInt()));
+        }
+        //re compute ids
+        int i = 0;
+        for (PictLoader pict : copy) {
+            pict.changeId(i++);
+        }
+        internal.clear();
+        internal = copy;
+    }
+
+    public void clear() {
+        internal.clear();
+    }
+
+    public void remove(final Selection selection) {
+        final List<PictLoader> copy = new ArrayList<>(internal.size());
+        for (PictLoader pict : internal) {
+            if (!selection.contains(pict.getId())) {
+                copy.add(pict);
+            }
+        }
+        //re compute ids
+        int i = 0;
+        for (PictLoader pict : copy) {
+            pict.changeId(i++);
+        }
+        internal.clear();
+        internal = copy;
+    }
 }

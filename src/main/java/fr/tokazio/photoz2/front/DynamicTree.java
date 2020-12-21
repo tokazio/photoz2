@@ -32,12 +32,9 @@
 package fr.tokazio.photoz2.front;
 
 import fr.tokazio.photoz2.back.VirtualFolder;
+import fr.tokazio.photoz2.back.VirtualFolderSerializer;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
-import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.plaf.IconUIResource;
 import javax.swing.tree.*;
@@ -46,108 +43,47 @@ import java.io.IOException;
 
 public class DynamicTree extends JPanel {
 
-    private static final String RSS = "/";
-    private static final ImageIcon TOUTES = loadIcon(RSS + "toutes.png");
-    private static final ImageIcon UNE = loadIcon(RSS + "une.png");
-    private static final ImageIcon FOLDER = loadIcon(RSS + "folder.png");
-    private static final ImageIcon COLLAPSED = loadIcon(RSS + "collapsed.png");
-    private static final ImageIcon EXPANDED = loadIcon(RSS + "expanded.png");
-    private static final ImageIcon PETIT = loadIcon(RSS + "petit.png");
-    private static final ImageIcon GRAND = loadIcon(RSS + "grand.png");
-    private final VirtualFolder rootVirtualFolder;
-    private final TreeSelectionListener treeSelectionListener = (TreeSelectionEvent e) -> {
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) e
-                .getPath().getLastPathComponent();
-        /*
-        List<File> liste = new ArrayList<>();
-        if (node.getUserObject() instanceof File) {
-            File dir = (File) node.getUserObject();
-            liste.addAll(getPhotosFromFolder(dir));
-            titre.setText(dir.getName());
-        } else {
-            dossiersAExplorer.stream().filter((dir) -> (dir.isDirectory())).forEachOrdered((dir) -> {
-                liste.addAll(getPhotosFromFolderAndSubfolder(dir));
-            });
-            titre.setText("Toutes les photos");
-        }
-
-        if (!liste.isEmpty()) {
-            hasSelectedFiles.enable(true);
-        }
-        compte.setText(liste.size() + " élément" + (liste.size() > 1 ? "s" : ""));
-        pictZone.setFiles(liste);
-
-         */
-    };
-    protected DefaultMutableTreeNode rootNode;
-    protected DefaultTreeModel treeModel;
-    protected JTree tree;
-    private final TreeCellRenderer treeRenderer = (JTree tree1, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) -> {
-        JLabel l = new JLabel();
-        if (((DefaultMutableTreeNode) value).getUserObject() instanceof VirtualFolder) {
-            VirtualFolder f = (VirtualFolder) ((DefaultMutableTreeNode) value).getUserObject();
-            l.setText(f.getName());
-            if (((DefaultMutableTreeNode) value).getChildCount() > 0) {
-                l.setIcon(FOLDER);
-            } else {
-                l.setIcon(UNE);
-            }
-        } else {
-            l.setText(((DefaultMutableTreeNode) value).getUserObject().toString());
-            l.setIcon(TOUTES);
-        }
-        //l.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-        l.setFont(tree.getFont().deriveFont(Font.PLAIN));
-        l.setForeground(Color.WHITE);
-        JPanel panel = new JPanel(new GridLayout(1, 1));
-        if (selected) {
-            panel.setBackground(Color.GRAY);
-        } else {
-            panel.setBackground(null);
-        }
-        panel.add(l);
-        return panel;
-    };
-    private Toolkit toolkit = Toolkit.getDefaultToolkit();
+    private final DefaultMutableTreeNode rootNode;
+    private final DefaultTreeModel treeModel;
+    private final JTree tree;
+    private VirtualFolder rootVirtualFolder;
 
     public DynamicTree() {
         super(new GridLayout(1, 0));
-
-        UIManager.put("Tree.collapsedIcon", new IconUIResource(COLLAPSED));
-        UIManager.put("Tree.expandedIcon", new IconUIResource(EXPANDED));
+        UIManager.put("Tree.collapsedIcon", new IconUIResource(DynamicTreeCellRenderer.COLLAPSED));
+        UIManager.put("Tree.expandedIcon", new IconUIResource(DynamicTreeCellRenderer.EXPANDED));
         UIManager.getLookAndFeelDefaults().put("Tree.paintLines", false);
 
         rootNode = new DefaultMutableTreeNode("Tous");
-
-        rootVirtualFolder = new VirtualFolder("Tous");
+        rootVirtualFolder = new VirtualFolder("Tous", null);
         rootNode.setUserObject(rootVirtualFolder);
-
         treeModel = new DefaultTreeModel(rootNode);
-        treeModel.addTreeModelListener(new MyTreeModelListener());
+        treeModel.addTreeModelListener(new DynamicTreeModelListener());
+
         tree = new JTree(treeModel);
-
+        tree.setLargeModel(true);
         tree.setEditable(false);
-        tree.getSelectionModel().setSelectionMode
-                (TreeSelectionModel.SINGLE_TREE_SELECTION);
-        tree.setShowsRootHandles(true);
-
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        tree.setShowsRootHandles(false);
         tree.setBackground(Color.DARK_GRAY);
+        tree.setCellRenderer(new DynamicTreeCellRenderer());
+        tree.setFont(getFont().deriveFont(14f));
 
-        tree.addTreeSelectionListener(treeSelectionListener);
-        tree.setCellRenderer(treeRenderer);
-
-        JScrollPane scrollPane = new JScrollPane(tree);
+        final JScrollPane scrollPane = new JScrollPane(tree);
+        //scrollPane.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
         add(scrollPane);
     }
 
-    private static ImageIcon loadIcon(String str) {
-        try {
-            return new ImageIcon(ImageIO.read(DynamicTree.class.getResourceAsStream(str)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public DynamicTree addSelectionListener(TreeSelectionListener listener) {
+        tree.addTreeSelectionListener(listener);
+        return this;
+    }
+
+    public VirtualFolder nodeAtPoint(final Point rootPoint) {
+        final Component root = SwingUtilities.getRoot(tree);
+        final Point treePoint = SwingUtilities.convertPoint(root, rootPoint, tree);
+        return (VirtualFolder) ((DefaultMutableTreeNode) tree.getClosestPathForLocation(treePoint.x, treePoint.y).getLastPathComponent()).getUserObject();
     }
 
     /**
@@ -169,58 +105,31 @@ public class DynamicTree extends JPanel {
             MutableTreeNode parent = (MutableTreeNode) (currentNode.getParent());
             if (parent != null) {
                 treeModel.removeNodeFromParent(currentNode);
-                return;
             }
         }
-
-        // Either there was no selection, or the root was selected.
-        toolkit.beep();
     }
 
     private DefaultMutableTreeNode getSelectedNode() {
         DefaultMutableTreeNode parentNode = null;
         TreePath parentPath = tree.getSelectionPath();
-
         if (parentPath == null) {
             parentNode = rootNode;
         } else {
-            parentNode = (DefaultMutableTreeNode)
-                    (parentPath.getLastPathComponent());
+            parentNode = (DefaultMutableTreeNode) parentPath.getLastPathComponent();
         }
         return parentNode;
     }
 
-    /**
-     * Add child to the currently selected node.
-     */
-    public DefaultMutableTreeNode addObject(Object child) {
-        DefaultMutableTreeNode parentNode = getSelectedNode();
-        return addObject(parentNode, child, true);
-    }
-
-    public DefaultMutableTreeNode addObject(DefaultMutableTreeNode parent,
-                                            Object child) {
-        return addObject(parent, child, false);
-    }
-
-    public DefaultMutableTreeNode addObject(DefaultMutableTreeNode parent,
-                                            Object child,
-                                            boolean shouldBeVisible) {
-        DefaultMutableTreeNode childNode =
-                new DefaultMutableTreeNode(child);
-
+    private DefaultMutableTreeNode addNode(DefaultMutableTreeNode parent, VirtualFolder virtualFolder) {
+        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(virtualFolder);
+        childNode.setUserObject(virtualFolder);
         if (parent == null) {
             parent = rootNode;
         }
-
         //It is key to invoke this on the TreeModel, and NOT DefaultMutableTreeNode
-        treeModel.insertNodeInto(childNode, parent,
-                parent.getChildCount());
-
+        treeModel.insertNodeInto(childNode, parent, parent.getChildCount());
         //Make sure the user can see the lovely new node.
-        if (shouldBeVisible) {
-            tree.scrollPathToVisible(new TreePath(childNode.getPath()));
-        }
+        //tree.scrollPathToVisible(new TreePath(childNode.getPath()));
         return childNode;
     }
 
@@ -232,88 +141,28 @@ public class DynamicTree extends JPanel {
         return tree;
     }
 
-    public void add(final VirtualFolder virtualFolder, boolean nodeOnly) {
-        if (!nodeOnly) {
-            VirtualFolder rootVirtualFolder = (VirtualFolder) rootNode.getUserObject();
-            rootVirtualFolder.add(virtualFolder);
-        }
-        DefaultMutableTreeNode node = addObject(virtualFolder.getName());
-        node.setUserObject(virtualFolder);
-        for (VirtualFolder f : virtualFolder.getChildren().all()) {
-            add(node, f);
-        }
-        //save();
-    }
-
-    public void add(final DefaultMutableTreeNode parent, final VirtualFolder virtualFolder) {
-        DefaultMutableTreeNode node = addObject(parent, virtualFolder.getName());
-        node.setUserObject(virtualFolder);
-        for (VirtualFolder f : virtualFolder.getChildren().all()) {
-            add(node, f);
-        }
-        //save();
-    }
-
     public void addToSelected(final VirtualFolder virtualFolder, final boolean nodeOnly) {
         if (!nodeOnly) {
-            VirtualFolder parentVirtualFolder = (VirtualFolder) getSelectedNode().getUserObject();
+            final VirtualFolder parentVirtualFolder = (VirtualFolder) getSelectedNode().getUserObject();
             parentVirtualFolder.add(virtualFolder);
         }
-        DefaultMutableTreeNode node = addObject(getSelectedNode(), virtualFolder.getName());
-        node.setUserObject(virtualFolder);
-        //save();
+        final DefaultMutableTreeNode node = addNode(getSelectedNode(), virtualFolder);
     }
 
-    static class MyTreeModelListener implements TreeModelListener {
-        public void treeNodesChanged(TreeModelEvent e) {
-            DefaultMutableTreeNode node;
-            node = (DefaultMutableTreeNode) (e.getTreePath().getLastPathComponent());
-
-            /*
-             * If the event lists children, then the changed
-             * node is the child of the node we've already
-             * gotten.  Otherwise, the changed node and the
-             * specified node are the same.
-             */
-
-            int index = e.getChildIndices()[0];
-            node = (DefaultMutableTreeNode) (node.getChildAt(index));
-
-            System.out.println("The user has finished editing the node.");
-            System.out.println("New value: " + node.getUserObject());
-        }
-
-        public void treeNodesInserted(TreeModelEvent e) {
-        }
-
-        public void treeNodesRemoved(TreeModelEvent e) {
-        }
-
-        public void treeStructureChanged(TreeModelEvent e) {
-        }
+    public void save(final String filename) throws IOException {
+        VirtualFolderSerializer.getInstance().save(rootVirtualFolder, filename);
     }
 
-    /*
-    private void save(final String filename) throws IOException {
-        final VirtualFolder rootVirtualFolder = (VirtualFolder) rootNode.getUserObject();
-        rootVirtulFolder.save(filename);
-    }
-
-    public void load(final String filename){
-        VirtualFolder root;
-        try{
-            root = VirtualFolder.load(filename);
-            for(VirtualFolder f : root.getChildren().all()){
-                add(f,true);
-            }
-        }catch (Exception ex){
-            ex.printStackTrace();
-            root = new VirtualFolder("Tous");
-        }
-        rootNode.setUserObject(root);
+    public void load(final String filename) throws IOException {
+        rootVirtualFolder = VirtualFolderSerializer.getInstance().load(filename);
+        loadChildren(rootNode, rootVirtualFolder);
         UIUtil.expandAllNodes(tree, 0, tree.getRowCount());
     }
 
-     */
+    private void loadChildren(DefaultMutableTreeNode parent, VirtualFolder virtualFolder) {
+        for (VirtualFolder f : rootVirtualFolder.getChildren().all()) {
+            addNode(parent, f);
+        }
+    }
 
 }

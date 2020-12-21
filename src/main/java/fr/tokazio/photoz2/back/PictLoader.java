@@ -15,7 +15,7 @@ import java.util.List;
 
 public class PictLoader {
 
-    private final int id;
+    private int id;
     private final List<LoadedListener> loadedListeners = new LinkedList<>();
     private final List<ProgressListener> progressListeners = new LinkedList<>();
     private Exception error;
@@ -120,6 +120,14 @@ public class PictLoader {
 
     public Exception getError() {
         return error;
+    }
+
+    public void changeId(int i) {
+        this.id = i;
+    }
+
+    public File asFile() {
+        return file;
     }
 
     enum State {

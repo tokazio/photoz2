@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,6 +28,8 @@ public class VirtualFolderSerializer {
         mapper.configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true);
         mapper.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     }
 
     public static VirtualFolderSerializer getInstance() {
@@ -36,7 +39,7 @@ public class VirtualFolderSerializer {
         return instance;
     }
 
-    public static VirtualFolder load(final String filename) throws IOException {
+    public VirtualFolder load(final String filename) throws IOException {
         if (filename == null) {
             throw new IllegalArgumentException("Can't load a null file");
         }
@@ -52,7 +55,7 @@ public class VirtualFolderSerializer {
             //TODO save root (parent==null)
             throw new UnsupportedOperationException("Can't save a non root virtual folder");
         }
-        mapper.writeValue(new File(filename), this);
+        mapper.writeValue(new File(filename), virtualFolder);
     }
 
 }
