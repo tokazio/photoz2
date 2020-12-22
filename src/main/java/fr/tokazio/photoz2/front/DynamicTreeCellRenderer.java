@@ -51,16 +51,16 @@ public class DynamicTreeCellRenderer implements javax.swing.tree.TreeCellRendere
             public Dimension getPreferredSize() {
                 Dimension size = super.getPreferredSize();
                 size.width = Short.MAX_VALUE;
+                size.height = 40;
                 return size;
             }
 
             @Override
             public void setBounds(final int x, final int y, final int width, final int height) {
-                super.setBounds(x, y, Math.min(200 - x, width), height);
+                super.setBounds(x, y, Math.min(200 - x, width), height + 10);
             }
         };
-
-        panel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
         if (selected) {
             panel.setBackground(new Color(32, 128, 255));
         } else {

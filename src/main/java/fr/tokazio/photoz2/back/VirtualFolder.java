@@ -16,10 +16,8 @@ public class VirtualFolder {
     private String name;
     @JsonProperty
     private String linkToFolder;
-    @JsonIgnore
-    private final List<VirtualFolderListener> listeners = new LinkedList<>();
     @JsonProperty
-    private List<Img> pictures = new LinkedList<>();
+    private PictLoaderList pictures;
     @JsonIgnore
     private VirtualFolder parent;//TODO le retrouver au load json
 
@@ -30,15 +28,7 @@ public class VirtualFolder {
     public void add(final VirtualFolder virtualFolder) {
         virtualFolder.parent = this;
         children.add(virtualFolder);
-        for (VirtualFolderListener l : listeners) {
-            l.onAdded(virtualFolder);
-        }
     }
-
-    public VirtualFolder getParent() {
-        return parent;
-    }
-
 
     public String getName() {
         return name;
@@ -50,12 +40,6 @@ public class VirtualFolder {
 
     public int getChildCount() {
         return children.size();
-    }
-
-    public void addListener(final VirtualFolderListener listener) {
-        if (listener != null) {
-            listeners.add(listener);
-        }
     }
 
 
@@ -92,5 +76,9 @@ public class VirtualFolder {
             pictures.add(new Img(linkToFolder, f));
         }
         System.out.println(selectedFiles.size() + " files added to " + name);
+    }
+
+    void setParent(VirtualFolder parent) {
+        this.parent = parent;
     }
 }

@@ -3,9 +3,6 @@ package fr.tokazio.photoz2.front;
 import fr.tokazio.photoz2.back.VirtualFolder;
 
 import javax.swing.*;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -32,11 +29,12 @@ public class MainFrame implements ComponentListener, MouseListener {
         JPanel left = new JPanel();
         frame.add(left, BorderLayout.WEST);
         left.setPreferredSize(new Dimension(200, 0));
-        left.setBackground(Color.DARK_GRAY);
+        left.setBackground(Color.WHITE);
         left.setLayout(new BorderLayout());
 
-        DynamicTree tree = new DynamicTree();
-        left.add(tree, BorderLayout.CENTER);
+        //DynamicTree tree = new DynamicTree();
+        VirtualFolderTree tree = new VirtualFolderTree();
+        left.add(tree.asComponent(), BorderLayout.CENTER);
 
         JButton addFolder = new JButton("+");
         left.add(addFolder, BorderLayout.SOUTH);
@@ -90,11 +88,13 @@ public class MainFrame implements ComponentListener, MouseListener {
 
         //+=======================================================================
 
-        pictPanel.addDropListener((e, p, selectedFiles) -> {
-            final VirtualFolder folder = tree.nodeAtPoint(p);
-            System.out.println("Dropped on " + folder.getName());
-            folder.add(selectedFiles);
-            return true;
+        pictPanel.addDropListener((event, treePoint, selectedFiles) -> {
+            final VirtualFolder folder = tree.nodeAtPoint(treePoint);
+            if (folder != null) {
+                System.out.println("Dropped on '" + folder.getName() + "'");
+                folder.add(selectedFiles);
+            }
+            return folder;
         });
 
         slider.addChangeListener(e -> pictPanel.setPictNbOnARow(slider.getMaximum() - slider.getValue()));
@@ -111,10 +111,9 @@ public class MainFrame implements ComponentListener, MouseListener {
         });
 
         addFolder.addActionListener(e -> {
-            VirtualFolder vf = new AddFolderFrame(frame).show().get();
+            final VirtualFolder vf = new AddFolderFrame(frame).show().get();
             if (vf != null) {
-                tree.addToSelected(vf, false);
-                UIUtil.expandAllNodes(tree.asTree(), 0, tree.getRowCount());
+                tree.addToSelected(vf);
                 try {
                     tree.save(JSON_FILE);
                 } catch (IOException ioException) {
@@ -123,11 +122,8 @@ public class MainFrame implements ComponentListener, MouseListener {
             }
         });
 
-        tree.addSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
-                VirtualFolder vf = (VirtualFolder) node.getUserObject();
+        tree.addSelectionListener(vf -> {
+            if (vf != null) {
                 System.out.println("Selected " + vf.getName());
                 lblFolderTitle.setText(vf.getFullName());
                 lblCount.setText(count(vf));
@@ -169,7 +165,7 @@ public class MainFrame implements ComponentListener, MouseListener {
 
     @Override
     public void componentResized(ComponentEvent e) {
-        pictPanel.resized(e);
+        pictPanel.resized();
     }
 
     @Override

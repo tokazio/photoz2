@@ -39,7 +39,6 @@ public class AddFolderFrame {
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        m.setBackground(Color.WHITE);
         a.add(linkButton);
 
         JPanel b = new JPanel();
@@ -65,17 +64,17 @@ public class AddFolderFrame {
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-
         annuler.setBackground(Color.WHITE);
         c.add(annuler);
+
         JButton ajouter = new JButton("Ajouter");
         ajouter.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-
         ajouter.setBackground(Color.WHITE);
         c.add(ajouter);
+
         frame.add(c, BorderLayout.SOUTH);
 
         linkButton.addActionListener(e -> {
@@ -90,15 +89,6 @@ public class AddFolderFrame {
                     nom.setText(chooser.getSelectedFile().getName());
                 }
             }
-
-                /*
-            FileDialog fdlg = new java.awt.FileDialog(frame);
-            fdlg.setVisible(true);
-            fdlg.setMultipleMode(false);
-            fdlg.setTitle("Choisir un dossier d'image à lier...");
-            System.setProperty("apple.awt.fileDialogForDirectories", "true");
-
-                 */
         });
 
         annuler.addActionListener(e -> {
@@ -107,13 +97,6 @@ public class AddFolderFrame {
         });
 
         ajouter.addActionListener(e -> {
-            /*
-            if(linkTo.getText().isEmpty()){
-                linkTo.requestFocus();
-                return;
-            }
-
-             */
             if (nom.getText().isEmpty()) {
                 nom.requestFocus();
                 return;

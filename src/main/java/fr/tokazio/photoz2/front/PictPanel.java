@@ -6,7 +6,6 @@ import fr.tokazio.photoz2.back.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.dnd.DropTarget;
 import java.awt.event.*;
 import java.io.File;
 import java.util.LinkedList;
@@ -21,9 +20,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     private final List<PictLoadingListener> pictLoadingListeners = new LinkedList<>();
     int maxY = 0;
 
-    int panelWidth = 1;//avoid /0
-    int panelHeight = 1;//avoid /0
-    int scrollY = 0;
+    private final List<DropListener<VirtualFolder>> dropListeners = new LinkedList<>();
+    private int panelWidth = 1;//avoid /0
+    private int panelHeight = 1;//avoid /0
     private final Selection selection = new Selection();
     //TODO tester skija avec opengl
     int rowMargin = 20;//espace entre les lignes
@@ -43,7 +42,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     private Point draggingFrom;
 
     private Point dragTo;
-    private DropListener dropListener;
+    private int scrollY = 0;
 
     public PictPanel() {
         this.panel = new JPanel() {
@@ -88,7 +87,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     }
 
     private int firstRowInPanel() {
-        return (int) ((Math.abs(scrollY)) / (w() + rowMargin));
+        return (Math.abs(scrollY)) / (w() + rowMargin);
     }
 
     //Lance le chargement des images visibles dans le panel
@@ -102,7 +101,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         int startAtRow = firstRowInPanel();
 
         //nb de photos affichées
-        int nbShow = (int) (nbY * nbX);
+        int nbShow = nbY * nbX;
 
         int imgStart = startAtRow * nbX;
         int imgEnd = imgStart + nbShow - 1;// pictList.size() - 1;
@@ -126,7 +125,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         System.out.println("Load from " + imgStart + " to " + imgEnd);
         boolean fired = false;
         for (int i = imgStart; i <= imgEnd; i++) {
-            pictLoaderList.load(i, w(), (int) w());
+            pictLoaderList.load(i, w(), w());
             if (!fired) {
                 fired = true;
                 firePendingChanged();
@@ -138,7 +137,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         return this.panel;
     }
 
-    public PictPanel setListener(PictPanelListener listener) {
+    public PictPanel setListener(final PictPanelListener listener) {
         this.listener = listener;
         return this;
     }
@@ -211,7 +210,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     g.setFont(g.getFont().deriveFont(10f));
                     if (!pictLoader.isLoaded() && pictLoader.getProgress() < 100) {
                         g.setColor(Color.GRAY);
-                        g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), (int) w);
+                        g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), w);
                         g.setColor(Color.DARK_GRAY);
                         String txt = (int) pictLoader.getProgress() + "%";
                         int tw = g.getFontMetrics().stringWidth(txt);
@@ -219,9 +218,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     }
                     int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
                     g.setColor(Color.GRAY);
-                    g.fillRect(x + w - tw - 6, (int) (y + w - 18), tw + 6, 18);
+                    g.fillRect(x + w - tw - 6, y + w - 18, tw + 6, 18);
                     g.setColor(Color.WHITE);
-                    g.drawString(pictLoader.getExt(), x + w - tw - 3, (int) (y + w - 5));
+                    g.drawString(pictLoader.getExt(), x + w - tw - 3, y + w - 5);
                     if (pictLoader.hasError()) {
                         String txt = pictLoader.getError().getMessage();
                         tw = g.getFontMetrics().stringWidth(txt);
@@ -239,8 +238,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         g.setStroke(new BasicStroke(3));
                         g.drawRect(x, y, w, (int) w);
                         g.setStroke(new BasicStroke(1));
-                        //g.setColor(new Color(32, 128, 255, 48));
-                        //g.fillRect(x, y, w, (int) w);
                     }
 
                     //draw drag to bar before the image
@@ -276,7 +273,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         int sx = panelWidth - sw;//scroll position x
 
         int totRow = (int) Math.ceil(pictLoaderList.size() / (float) nbX);//nombre total de ligne d'image dans la liste
-        int totY = (int) (totRow * (w + rowMargin));//hauteur total en px
+        int totY = totRow * (w + rowMargin);//hauteur total en px
         maxY = totY - panelHeight;//hauteur max de scroll en px
 
         int pl = panelHeight - 2 * sw;//hauteur entre les buts up et down
@@ -323,6 +320,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         return new Rectangle(0, 0, 0, 0);
     }
 
+    /*
     public void loadFiles(List<File> in) {
         int i = 0;
         for (File f : in) {
@@ -330,11 +328,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 System.out.println("Loading ended for #" + p.getId());
                 firePendingChanged();
                 panel.repaint();
-            }).addProgressListener((p, v) -> {
-                panel.repaint();
-            }));
+            }).addProgressListener((p, v) -> panel.repaint()));
         }
     }
+
+     */
 
     public void loadFiles(VirtualFolder virtualFolder) {
         firstLoad = true;
@@ -388,8 +386,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 endScrollAt = System.currentTimeMillis();
                 panel.repaint();
                 load();
-            } else {
-                //scroll bar
             }
         }
 
@@ -404,7 +400,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private Point toGrid(final Point pxPoint, final boolean withMargin) {
         int w = w();
-        int h = w;
         int xAt = ((int) pxPoint.getX() - marginL) / (w + colMargin);
         int l = marginL + xAt * (w + colMargin);
         int r = l + w;
@@ -413,8 +408,8 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         }
 
         int ptY = pxPoint.y - scrollY;
-        int yAt = (ptY - rowMargin) / (h + rowMargin);
-        int t = (rowMargin + yAt * (h + rowMargin));
+        int yAt = (ptY - rowMargin) / (w + rowMargin);
+        int t = (rowMargin + yAt * (w + rowMargin));
         int b = t + w;
         if (!withMargin && (ptY < t || ptY > b)) {
             yAt = -1;
@@ -442,8 +437,10 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         }
     }
 
-    public PictPanel addDropListener(DropListener l) {
-        this.dropListener = l;
+    public PictPanel addDropListener(final DropListener<VirtualFolder> l) {
+        if (l != null) {
+            this.dropListeners.add(l);
+        }
         return this;
     }
 
@@ -452,24 +449,23 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         final Component root = SwingUtilities.getRoot(panel);
         final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
         final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
-        if (c instanceof JTree) {
-            //drag to jtree
-
-
-            if (dropListener != null) {
-
+        System.out.println("Dropped to " + c.getName() + " (" + c.getClass().getName() + ")");
+        final Point treePoint = SwingUtilities.convertPoint(root, p, c);
+        if ("VirtualFolderTree".equals(c.getName())) {
+            //drag to tree
+            if (!dropListeners.isEmpty()) {
                 List<File> selectedFiles = new LinkedList<>();
                 for (Id id : selection.all()) {
                     selectedFiles.add(pictLoaderList.get(id.asInt()).asFile());
                 }
-
                 System.out.println("Dropping " + selectedFiles.size());
-
-                boolean dropped = dropListener.dropped(e, p, selectedFiles);
-                if (dropped) {
-                    System.out.println("Dropped successfully");
-                    pictLoaderList.remove(selection);
-                    panel.repaint();
+                for (DropListener<VirtualFolder> l : dropListeners) {
+                    final VirtualFolder vf = l.dropped(e, treePoint, selectedFiles);
+                    if (vf != null) {//TODO can't drop into source (same) folder
+                        System.out.println("Dropped successfully");
+                        pictLoaderList.remove(selection);
+                        panel.repaint();
+                    }
                 }
             }
             selection.clear();
@@ -611,7 +607,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         endScrollAt = System.currentTimeMillis();//trigger load() 250ms later max
     }
 
-    public void resized(ComponentEvent e) {
+    public void resized() {
         if (!firstLoad) {
             System.out.println("Resized");
             stopLoad();
@@ -642,7 +638,16 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             scrollFrom = e.getPoint();
         }
         if (draggingFrom != null) {
-            dragTo = toGrid(e.getPoint(), true);
+            final Component root = SwingUtilities.getRoot(panel);
+            final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
+            final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
+            final Point treePoint = SwingUtilities.convertPoint(root, p, c);
+            if ("VirtualFolderTree".equals(c.getName())) {
+                c.firePropertyChange("dropping", treePoint.x, treePoint.y);
+                c.repaint();
+            } else {
+                dragTo = toGrid(e.getPoint(), true);
+            }
         }
         panel.repaint();
     }
@@ -652,7 +657,4 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     }
 
-    public void setDropTarget(DropTarget dropTarget) {
-        panel.setDropTarget(dropTarget);
-    }
 }

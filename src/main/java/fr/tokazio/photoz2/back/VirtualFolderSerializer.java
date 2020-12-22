@@ -47,7 +47,17 @@ public class VirtualFolderSerializer {
         if (!f.exists()) {
             throw new FileNotFoundException("Can't load '" + filename + "' because it not exists");
         }
-        return mapper.readValue(f, VirtualFolder.class);
+        final VirtualFolder root = mapper.readValue(f, VirtualFolder.class);
+        //This wil place the parent field of each children
+        subLoad(root);
+        return root;
+    }
+
+    private void subLoad(VirtualFolder parent) {
+        for (VirtualFolder vf : parent.getChildren().all()) {
+            vf.setParent(parent);
+            subLoad(vf);
+        }
     }
 
     public void save(final VirtualFolder virtualFolder, final String filename) throws IOException {
