@@ -101,4 +101,12 @@ public class PictLoaderList {
         internal.clear();
         internal = copy;
     }
+
+    public void add(final PictLoaderList others) {
+        int k = internal.size();
+        for (PictLoader pl : others.all()) {
+            internal.add(pl);
+            pl.changeId(k++);
+        }
+    }
 }

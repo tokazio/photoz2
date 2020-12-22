@@ -1,5 +1,6 @@
 package fr.tokazio.photoz2.front;
 
+import fr.tokazio.photoz2.back.PictLoaderList;
 import fr.tokazio.photoz2.back.VirtualFolder;
 
 import javax.swing.*;
@@ -16,6 +17,7 @@ public class MainFrame implements ComponentListener, MouseListener {
 
     private final JFrame frame;
     private final PictPanel pictPanel;
+    private final VirtualFolderTree tree;
 
     public MainFrame() {
         this.frame = new JFrame();
@@ -26,35 +28,43 @@ public class MainFrame implements ComponentListener, MouseListener {
 
         frame.setLayout(new BorderLayout());
 
-        JPanel left = new JPanel();
+        final JPanel left = new JPanel();
         frame.add(left, BorderLayout.WEST);
         left.setPreferredSize(new Dimension(200, 0));
         left.setBackground(Color.WHITE);
         left.setLayout(new BorderLayout());
 
-        //DynamicTree tree = new DynamicTree();
-        VirtualFolderTree tree = new VirtualFolderTree();
+        tree = new VirtualFolderTree();
         left.add(tree.asComponent(), BorderLayout.CENTER);
 
-        JButton addFolder = new JButton("+");
-        left.add(addFolder, BorderLayout.SOUTH);
+        final JPanel butsFolder = new JPanel();
+        left.add(butsFolder, BorderLayout.SOUTH);
+        butsFolder.setBackground(Color.WHITE);
+
+        final JButton addFolder = new JButton("+");
+        butsFolder.add(addFolder, BorderLayout.SOUTH);
         addFolder.setBackground(Color.WHITE);
 
-        JPanel center = new JPanel();
+        final JButton removeFolder = new JButton("-");
+        butsFolder.add(removeFolder, BorderLayout.SOUTH);
+        removeFolder.setBackground(Color.WHITE);
+        removeFolder.setVisible(false);
+
+        final JPanel center = new JPanel();
         center.setLayout(new BorderLayout());
         frame.add(center, BorderLayout.CENTER);
 
-        JPanel toolsTop = new JPanel();
+        final JPanel toolsTop = new JPanel();
         center.add(toolsTop, BorderLayout.NORTH);
         toolsTop.setLayout(new GridLayout(1, 2));
         toolsTop.setBackground(Color.WHITE);
         toolsTop.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        JLabel lblFolderTitle = new JLabel("Choisir un dossier...");
+        final JLabel lblFolderTitle = new JLabel("Choisir un dossier...");
         toolsTop.add(lblFolderTitle);
         lblFolderTitle.setForeground(Color.DARK_GRAY);
 
-        JLabel lblCount = new JLabel("");
+        final JLabel lblCount = new JLabel("");
         toolsTop.add(lblCount);
         lblCount.setHorizontalAlignment(SwingConstants.RIGHT);
         lblCount.setForeground(Color.DARK_GRAY);
@@ -63,38 +73,55 @@ public class MainFrame implements ComponentListener, MouseListener {
         center.add(pictPanel.asComponent(), BorderLayout.CENTER);
 
 
-        JPanel toolsBottom = new JPanel();
+        final JPanel toolsBottom = new JPanel();
         center.add(toolsBottom, BorderLayout.SOUTH);
         toolsBottom.setLayout(new GridLayout(1, 3));
         toolsBottom.setBackground(Color.WHITE);
         toolsBottom.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        JLabel vide1 = new JLabel();
+        final JLabel vide1 = new JLabel();
         vide1.setForeground(Color.DARK_GRAY);
         toolsBottom.add(vide1);
 
-        JLabel vide2 = new JLabel();
+        final JLabel vide2 = new JLabel();
         vide2.setForeground(Color.DARK_GRAY);
         toolsBottom.add(vide2);
 
-        JSlider slider = new JSlider();
+        final JSlider slider = new JSlider();
         toolsBottom.add(slider);
         slider.setBackground(Color.WHITE);
         slider.setMinimum(1);
         slider.setMaximum(24);
         slider.setValue(slider.getMaximum() - 4);
 
-        //TODO slider change le nb de colonne (pas la largeur d'image)
-
         //+=======================================================================
 
-        pictPanel.addDropListener((event, treePoint, selectedFiles) -> {
-            final VirtualFolder folder = tree.nodeAtPoint(treePoint);
-            if (folder != null) {
-                System.out.println("Dropped on '" + folder.getName() + "'");
-                folder.add(selectedFiles);
+        pictPanel.addDropListener(new DropListener<>() {
+
+            private VirtualFolder to;
+
+            @Override
+            public void drop(final PictLoaderList selection) {
+                if (to != null) {
+                    System.out.println("Dropped on '" + to.getName() + "'");
+                    to.add(selection);
+                }
             }
-            return folder;
+
+            @Override
+            public VirtualFolder dropTo(final Point treePoint) {
+                to = tree.nodeAtPoint(treePoint);
+                return to;
+            }
+
+            @Override
+            public void dropped() {
+                try {
+                    tree.save(JSON_FILE);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         });
 
         slider.addChangeListener(e -> pictPanel.setPictNbOnARow(slider.getMaximum() - slider.getValue()));
@@ -122,12 +149,26 @@ public class MainFrame implements ComponentListener, MouseListener {
             }
         });
 
+        removeFolder.addActionListener(e -> {
+            VirtualFolder vf = tree.getSelected();
+            if (vf != null) {
+                //TODO ask confirm
+                tree.remove(vf);
+                try {
+                    tree.save(JSON_FILE);
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        });
+
         tree.addSelectionListener(vf -> {
+            removeFolder.setVisible(vf != null);
             if (vf != null) {
                 System.out.println("Selected " + vf.getName());
                 lblFolderTitle.setText(vf.getFullName());
                 lblCount.setText(count(vf));
-                pictPanel.loadFiles(vf);
+                pictPanel.loadVirtualFolder(vf);
             }
         });
 
@@ -154,8 +195,8 @@ public class MainFrame implements ComponentListener, MouseListener {
         }
     }
 
-    private String count(VirtualFolder vf) {
-        int c = vf.getImages().size();
+    private String count(final VirtualFolder vf) {
+        int c = vf.getPictures().size();
         return c + " élément" + (c > 1 ? "s" : "");
     }
 
@@ -164,8 +205,9 @@ public class MainFrame implements ComponentListener, MouseListener {
     }
 
     @Override
-    public void componentResized(ComponentEvent e) {
+    public void componentResized(final ComponentEvent e) {
         pictPanel.resized();
+        tree.resized();
     }
 
     @Override
@@ -195,7 +237,7 @@ public class MainFrame implements ComponentListener, MouseListener {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        System.out.println("Frame released");
+
     }
 
     @Override

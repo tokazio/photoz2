@@ -13,18 +13,33 @@ import java.util.List;
 
 public class VirtualFolderTree implements MouseListener {
 
+    private static final String RSS = "/";
+    //    public static final ImageIcon COLLAPSED = UIUtil.loadIcon(RSS + "collapsed.png");
+//    public static final ImageIcon EXPANDED = UIUtil.loadIcon(RSS + "expanded.png");
+    private static final ImageIcon TOUTES = UIUtil.loadIcon(RSS + "toutes.png");
+    private static final ImageIcon UNE = UIUtil.loadIcon(RSS + "une.png");
+    private static final ImageIcon FOLDER = UIUtil.loadIcon(RSS + "folder.png");
+//    private static final ImageIcon PETIT = UIUtil.loadIcon(RSS + "petit.png");
+//    private static final ImageIcon GRAND = UIUtil.loadIcon(RSS + "grand.png");
+
     private final JPanel panel;
     private final List<VirtualFolder> selectables = new LinkedList<>();
     private final List<VirtualFolderTreeSelectionListener> treeSelectionListeners = new LinkedList<>();
     private int panelWidth = 1;//avoid /0
     private int panelHeight = 1;//avoid /0
-    private int marginL = 5;
-    private int decay = 20;
-    private int rowH = 25;
-    private int scrollY = 0;
+    private final int marginL = 5;
+    private final int decay = 20;
+    private final int rowH = 25;
     private VirtualFolder rootVirtualFolder;
     private VirtualFolder selected;
     private VirtualFolder dropping;
+
+    private final ScrollBar scrollBar;
+    private int y;
+
+    public Component asComponent() {
+        return this.panel;
+    }
 
     public VirtualFolderTree() {
         this.panel = new JPanel() {
@@ -34,36 +49,45 @@ public class VirtualFolderTree implements MouseListener {
                 super.paintComponent(g);
                 panelWidth = getWidth();
                 panelHeight = getHeight();
-                draw((Graphics2D) g);
+                draw(UIUtil.antialias(g));
             }
         };
+        scrollBar = new ScrollBar(panel);
         panel.setName(getClass().getSimpleName());
         panel.addMouseListener(this);
-        panel.addPropertyChangeListener("dropping", evt -> {
+        panel.addPropertyChangeListener("dropping-begin", evt -> {
             long x = (long) evt.getOldValue();
             long y = (long) evt.getNewValue();
             final Point p = new Point((int) x, (int) y);
             dropping = nodeAtPoint(p);
+            panel.repaint();
         });
-    }
+        panel.addPropertyChangeListener("dropping-end", evt -> {
+            dropping = null;
+            panel.repaint();
+        });
 
-    public Component asComponent() {
-        return this.panel;
     }
 
     private void draw(final Graphics2D g) {
-
         final long start = System.currentTimeMillis();
-
         //background
         g.setColor(Color.DARK_GRAY);
         g.fillRect(0, 0, panelWidth, panelHeight);
 
-        int y = 0;
-        drawSub(g, rootVirtualFolder, y, 0);
+        scrollBar.defineElements(selectables.size(), rowH);
+
+        y = scrollBar.scrollY();
+        //nodes
+        drawSub(g, rootVirtualFolder, 0);
+        //scrollbar
+        scrollBar.draw(g);
+        final long end = System.currentTimeMillis();
+        //le dessin ne devrait pas prendre plus de 33ms (30/sec)
+        System.out.println(System.currentTimeMillis() + "> Drawn " + selectables.size() + " nodes in " + (end - start) + "ms");
     }
 
-    private void drawSub(final Graphics2D g, final VirtualFolder parent, final int y, final int level) {
+    private void drawSub(final Graphics2D g, final VirtualFolder parent, final int level) {
         final String text = parent.getName();
         if (parent.equals(selected)) {
             g.setColor(new Color(32, 128, 255));
@@ -71,22 +95,35 @@ public class VirtualFolderTree implements MouseListener {
         }
         if (parent.equals(dropping)) {
             g.setColor(new Color(32, 128, 255));
-            g.drawRect(0, y, panelWidth, rowH);
+            g.drawRect(0, y, panelWidth - 2, rowH);
         }
+
+        if (!parent.hasAParent()) {
+            g.drawImage(TOUTES.getImage(), marginL + decay * level, y + 5, null);
+        } else if (parent.getChildCount() > 0) {
+            g.drawImage(FOLDER.getImage(), marginL + decay * level, y + 5, null);
+        } else {
+            g.drawImage(UNE.getImage(), marginL + decay * level, y + 7, null);
+        }
+
         g.setColor(Color.WHITE);
-        g.drawString(text, marginL + decay * level, y + 17);
+        g.drawString(text, marginL + decay * level + 25, y + 17);
+        y += rowH;
         for (VirtualFolder vf : parent.getChildren().all()) {
-            drawSub(g, vf, y + rowH, level + 1);
+            drawSub(g, vf, level + 1);
         }
     }
 
     public VirtualFolder nodeAtPoint(final Point p) {
-        final int id = p.y / rowH;
-        System.out.println("Node at " + p + " is #" + id);
-        if (id < 1 || id > selectables.size() - 1) { //root not selectable
-            return null;
+        if (p.getX() < panelWidth - scrollBar.getWidth()) {
+            final int id = (p.y - scrollBar.scrollY()) / rowH;
+            System.out.println("Node at " + p + " is #" + id);
+            if (id < 1 || id > selectables.size() - 1) { //root not selectable
+                return null;
+            }
+            return selectables.get(id);
         }
-        return selectables.get(id);
+        return null;//on scrollbar
     }
 
     public void addToSelected(final VirtualFolder virtualFolder) {
@@ -94,9 +131,11 @@ public class VirtualFolderTree implements MouseListener {
         if (parent == null) {
             parent = rootVirtualFolder;
         }
+        System.out.println("Add " + virtualFolder.getName() + " to " + parent.getName());
         parent.add(virtualFolder);
         selectables.clear();
-        loadSub(rootVirtualFolder);
+        buildSelectables(rootVirtualFolder);
+        panel.repaint();
     }
 
     public void save(final String filename) throws IOException {
@@ -111,15 +150,16 @@ public class VirtualFolderTree implements MouseListener {
 
     public void load(final String filename) throws IOException {
         rootVirtualFolder = VirtualFolderSerializer.getInstance().load(filename);
-        panel.repaint();
         selectables.clear();
-        loadSub(rootVirtualFolder);
+        buildSelectables(rootVirtualFolder);
+        System.out.println(selectables);
+        panel.repaint();
     }
 
-    private void loadSub(final VirtualFolder vf) {
+    private void buildSelectables(final VirtualFolder vf) {
         selectables.add(vf);
         for (VirtualFolder child : vf.getChildren().all()) {
-            loadSub(child);
+            buildSelectables(child);
         }
     }
 
@@ -150,5 +190,18 @@ public class VirtualFolderTree implements MouseListener {
     @Override
     public void mouseExited(MouseEvent e) {
 
+    }
+
+    public void resized() {
+        panel.repaint();
+        scrollBar.resized();
+    }
+
+    public VirtualFolder getSelected() {
+        return selected;
+    }
+
+    public boolean remove(final VirtualFolder vf) {
+        return vf.getParent() != null && vf.getParent().remove(vf);
     }
 }

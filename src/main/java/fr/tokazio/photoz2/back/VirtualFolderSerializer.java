@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class VirtualFolderSerializer {
@@ -23,6 +22,13 @@ public class VirtualFolderSerializer {
                 .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
                 .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
                 .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
+
+        mapper.setVisibility(mapper.getDeserializationConfig().getDefaultVisibilityChecker()
+                .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+                .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
+                .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
+                .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
+
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
         mapper.configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true);
@@ -45,7 +51,8 @@ public class VirtualFolderSerializer {
         }
         final File f = new File(filename);
         if (!f.exists()) {
-            throw new FileNotFoundException("Can't load '" + filename + "' because it not exists");
+            return new VirtualFolder("Tous", null);
+//            throw new FileNotFoundException("Can't load '" + filename + "' because it not exists");
         }
         final VirtualFolder root = mapper.readValue(f, VirtualFolder.class);
         //This wil place the parent field of each children
@@ -54,6 +61,10 @@ public class VirtualFolderSerializer {
     }
 
     private void subLoad(VirtualFolder parent) {
+        int k = 0;
+        for (PictLoader pl : parent.getPictures().all()) {
+            pl.changeId(k++);
+        }
         for (VirtualFolder vf : parent.getChildren().all()) {
             vf.setParent(parent);
             subLoad(vf);

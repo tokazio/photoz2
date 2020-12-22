@@ -4,12 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.File;
-import java.util.LinkedList;
-import java.util.List;
 
 public class VirtualFolder {
 
-    final List<File> images = new LinkedList<>();
     @JsonProperty
     private final VirtualFolderList children = new VirtualFolderList();
     @JsonProperty
@@ -17,9 +14,11 @@ public class VirtualFolder {
     @JsonProperty
     private String linkToFolder;
     @JsonProperty
-    private PictLoaderList pictures;
+    private PictLoaderList pictures = new PictLoaderList();
     @JsonIgnore
-    private VirtualFolder parent;//TODO le retrouver au load json
+    private VirtualFolder parent;
+    @JsonIgnore
+    private boolean fresh = true;
 
     private VirtualFolder() {
         //jackson
@@ -47,23 +46,19 @@ public class VirtualFolder {
         return parent != null;
     }
 
-    public VirtualFolder(final @JsonProperty("name") String name, final @JsonProperty("linkToFolder") String linkToFolder) {
+    public VirtualFolder(final String name, final String linkToFolder) {
         this.name = name;
         this.linkToFolder = linkToFolder;
         if (linkToFolder != null && !linkToFolder.isEmpty()) {
+            int k = 0;
             for (File f : new PictCollect(linkToFolder).all()) {
-                pictures.add(new Img(linkToFolder, f));
+                pictures.add(new PictLoader(k++, f));
             }
         }
     }
 
-    public List<File> getImages() {
-        if (images.isEmpty()) {
-            for (Img img : pictures) {
-                images.add(new File(linkToFolder + img.relative()));
-            }
-        }
-        return images;
+    public PictLoaderList getPictures() {
+        return pictures;
     }
 
     public String getFullName() {
@@ -71,14 +66,33 @@ public class VirtualFolder {
         return name;
     }
 
-    public void add(final List<File> selectedFiles) {
-        for (File f : selectedFiles) {
-            pictures.add(new Img(linkToFolder, f));
-        }
+    public void add(final PictLoaderList selectedFiles) {
+        pictures.add(selectedFiles);
         System.out.println(selectedFiles.size() + " files added to " + name);
     }
 
     void setParent(VirtualFolder parent) {
         this.parent = parent;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    public VirtualFolder getParent() {
+        return parent;
+    }
+
+    public boolean remove(VirtualFolder vf) {
+        return children.remove(vf);
+    }
+
+    public boolean isFresh() {
+        return fresh;
+    }
+
+    public void setNotFresh() {
+        fresh = false;
     }
 }

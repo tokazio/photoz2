@@ -1,5 +1,8 @@
 package fr.tokazio.photoz2.back;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.event.IIOReadProgressListener;
@@ -15,23 +18,37 @@ import java.util.List;
 
 public class PictLoader {
 
-    private int id;
+    @JsonIgnore
     private final List<LoadedListener> loadedListeners = new LinkedList<>();
+    @JsonIgnore
     private final List<ProgressListener> progressListeners = new LinkedList<>();
+    @JsonIgnore
+    private int id;
+    @JsonIgnore
     private Exception error;
+    @JsonIgnore
     private int w = 1;
+    @JsonIgnore
     private int h = 1;
+    @JsonIgnore
     private float progress = 0;
+    @JsonIgnore
     private volatile State state = State.NONE;
+    @JsonIgnore
     private PictWorker sw1;
+    @JsonIgnore
+    private Image image;
+    @JsonProperty
+    private File file;
+
+    private PictLoader() {
+        //jackson
+    }
 
     public PictLoader(final int id, final File file) {
         this.id = id;
         this.file = file;
     }
-
-    private final File file;
-    private Image image;
 
     public int getId() {
         return id;
@@ -41,6 +58,7 @@ public class PictLoader {
         return progress;
     }
 
+    @JsonIgnore
     public boolean isPending() {
         //TODO detecte pending timeout and put error
         return State.PENDING.equals(state) || State.LOADING.equals(state);
@@ -62,6 +80,7 @@ public class PictLoader {
         }
     }
 
+    @JsonIgnore
     public boolean isLoaded() {
         return State.LOADED.equals(state) || State.ERROR.equals(state);
     }
@@ -110,6 +129,7 @@ public class PictLoader {
         }
     }
 
+    @JsonIgnore
     public boolean isLoading() {
         return State.LOADING.equals(state);
     }
@@ -122,7 +142,7 @@ public class PictLoader {
         return error;
     }
 
-    public void changeId(int i) {
+    void changeId(int i) {
         this.id = i;
     }
 

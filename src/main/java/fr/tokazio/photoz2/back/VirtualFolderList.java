@@ -23,4 +23,7 @@ public class VirtualFolderList {
     }
 
 
+    public boolean remove(VirtualFolder vf) {
+        return internal.remove(vf);
+    }
 }
