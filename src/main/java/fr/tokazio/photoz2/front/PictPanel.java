@@ -151,6 +151,8 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, panelWidth, panelHeight);
 
+        g.setFont(g.getFont().deriveFont(10f));
+
         //Selection rect background
         final Rectangle selectionRect = computeSelectionRect();
         if (pressedAt != null && rectTo != null) {
@@ -184,12 +186,10 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             //On commence vraiment à dessiner à partir de la ligne au dessus de la première
             //pour avoir le bas d'une éventuelle ligne précédente
             if (y > -w - rowMargin) {
-
-                //default background color
-                g.setColor(Color.LIGHT_GRAY);
                 //background color when has error
                 if (pictLoader.hasError()) {
                     g.setColor(Color.RED);
+                    g.fillRect(x, y, w, w);
                 }
                 //background color when dragging
                 if (isDragging) {
@@ -197,42 +197,44 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     g.setStroke(new DashedStroke(3));
                     g.drawRect(x, y, w, w);
                     g.setStroke(new BasicStroke(1));
-                } else {
-                    g.fillRect(x, y, w, w);
                 }
-                //Draw the real image
+
                 if (!isDragging) {
-                    if (pictLoader.asImage() != null) {
-                        g.drawImage(pictLoader.asImage(), x, y, w, w, null);
-                        g.setColor(Color.GRAY);
-                        g.drawRect(x, y, w, w);
-                        nbVraimentDessinee++;
-                    }
-                    g.setFont(g.getFont().deriveFont(10f));
+                    //loading
                     if (!pictLoader.isLoaded() && pictLoader.getProgress() < 100) {
+                        g.setColor(Color.LIGHT_GRAY);
+                        g.fillRoundRect(x, y + w / 2, (int) (w * (pictLoader.getProgress() / 100)), 8, 8, 8);
                         g.setColor(Color.GRAY);
-                        g.fillRect(x, y, (int) (w * (pictLoader.getProgress() / 100)), w);
-                        g.setColor(Color.DARK_GRAY);
                         String txt = (int) pictLoader.getProgress() + "%";
                         int tw = g.getFontMetrics().stringWidth(txt);
                         g.drawString(txt, x + ((w - tw) / 2f), y + ((w - 10) / 2f));
                     }
-                    int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
-                    g.setColor(Color.GRAY);
-                    g.fillRect(x + w - tw - 6, y + w - 18, tw + 6, 18);
-                    g.setColor(Color.WHITE);
-                    g.drawString(pictLoader.getExt(), x + w - tw - 3, y + w - 5);
+                    if (pictLoader.asImage() != null) {
+                        //Draw the real image
+                        g.drawImage(pictLoader.asImage(), x, y, w, w, null);
+                        g.setColor(Color.GRAY);
+                        g.drawRect(x, y, w, w);
+                        nbVraimentDessinee++;
+                        //tag ext
+                        int tw = g.getFontMetrics().stringWidth(pictLoader.getExt());
+                        g.setColor(Color.GRAY);
+                        g.fillRect(x + w - tw - 6, y + w - 18, tw + 6, 18);
+                        g.setColor(Color.WHITE);
+                        g.drawString(pictLoader.getExt(), x + w - tw - 3, y + w - 5);
+
+                    }
+                    //error
                     if (pictLoader.hasError()) {
                         String txt = pictLoader.getError().getMessage();
-                        tw = g.getFontMetrics().stringWidth(txt);
+                        int tw = g.getFontMetrics().stringWidth(txt);
                         g.setColor(Color.WHITE);
                         g.drawString(txt, x + ((w - tw) / 2f), y + ((w - 10) / 2f));
                     }
-                    g.setColor(Color.MAGENTA);
+                    //debug
                     if (Config.getInstance().debug()) {
+                        g.setColor(Color.MAGENTA);
                         g.drawString("#" + i + " (id=" + pictLoader.getId() + ")", x, y + 20);
                     }
-
                     //draw selected
                     if (selection.contains(id) || draggingSelection.contains(id)) {
                         g.setColor(new Color(32, 128, 255));
@@ -240,14 +242,12 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         g.drawRect(x, y, w, (int) w);
                         g.setStroke(new BasicStroke(1));
                     }
-
                     //draw drag to bar before the image
                     if (id.asInt() == toListId(dragTo)) {
                         g.setColor(new Color(32, 128, 255));
                         g.fillRect(x - colMargin / 2 - 1, y, 3, w);
                     }
                 }
-
             } else {
                 virtualFolder.getPictures().unload(pictLoader);
             }

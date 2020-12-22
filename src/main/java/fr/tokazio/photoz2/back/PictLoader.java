@@ -39,7 +39,7 @@ public class PictLoader {
     @JsonIgnore
     private Image image;
     @JsonProperty
-    private File file;
+    private String file;
 
     private PictLoader() {
         //jackson
@@ -47,7 +47,7 @@ public class PictLoader {
 
     public PictLoader(final int id, final File file) {
         this.id = id;
-        this.file = file;
+        this.file = file.getAbsolutePath();
     }
 
     public int getId() {
@@ -98,7 +98,8 @@ public class PictLoader {
     }
 
     public String getExt() {
-        return file.getName().substring(file.getName().lastIndexOf('.')).toLowerCase();
+        final File f = new File(file);
+        return f.getName().substring(f.getName().lastIndexOf('.')).toLowerCase();
     }
 
     public PictLoader addLoadedListener(LoadedListener loadedListener) {
@@ -147,7 +148,7 @@ public class PictLoader {
     }
 
     public File asFile() {
-        return file;
+        return new File(file);
     }
 
     enum State {

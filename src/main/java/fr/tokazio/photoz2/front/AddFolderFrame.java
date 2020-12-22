@@ -22,24 +22,7 @@ public class AddFolderFrame {
         frame.add(m, BorderLayout.CENTER);
         m.setBackground(Color.WHITE);
 
-        JPanel a = new JPanel();
-        a.setLayout(new BoxLayout(a, BoxLayout.X_AXIS));
-        m.add(a);
-        a.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-        a.setPreferredSize(new Dimension(Integer.MAX_VALUE, 50));
-        a.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        a.setBackground(Color.WHITE);
-        JLabel lblLinkTo = new JLabel("Dossier des images");
-        a.add(lblLinkTo);
-        JTextField linkTo = new JTextField();
-        a.add(linkTo);
-        JButton linkButton = new JButton("Parcourir...");
-        linkButton.setBackground(Color.WHITE);
-        linkButton.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        a.add(linkButton);
+
 
         JPanel b = new JPanel();
         b.setLayout(new BoxLayout(b, BoxLayout.X_AXIS));
@@ -52,6 +35,29 @@ public class AddFolderFrame {
         b.add(lblNom);
         JTextField nom = new JTextField();
         b.add(nom);
+
+        JPanel a = new JPanel();
+        a.setLayout(new BoxLayout(a, BoxLayout.X_AXIS));
+        m.add(a);
+        a.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        a.setPreferredSize(new Dimension(Integer.MAX_VALUE, 50));
+        a.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        a.setBackground(Color.WHITE);
+        JLabel lblLinkTo = new JLabel("Importer des images");
+        a.add(lblLinkTo);
+        JTextField linkTo = new JTextField();
+        a.add(linkTo);
+        JButton linkButton = new JButton("Parcourir...");
+        linkButton.setBackground(Color.WHITE);
+        linkButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        a.add(linkButton);
+        //TODO inclure sous dossiers (change en live)
+
+        //TODO barre chargement
+        //TODO infos, nb images importée (change en live)
 
         JPanel vide = new JPanel();
         vide.setBackground(Color.WHITE);
