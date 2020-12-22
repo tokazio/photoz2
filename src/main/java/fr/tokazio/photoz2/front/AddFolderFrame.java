@@ -70,7 +70,9 @@ public class AddFolderFrame {
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        annuler.setBackground(Color.WHITE);
+        annuler.setBackground(UIUtil.red());
+        annuler.setForeground(Color.WHITE);
+        annuler.setFont(UIUtil.getFont(14));
         c.add(annuler);
 
         JButton ajouter = new JButton("Ajouter");
@@ -78,7 +80,9 @@ public class AddFolderFrame {
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        ajouter.setBackground(Color.WHITE);
+        ajouter.setBackground(UIUtil.green());
+        ajouter.setForeground(Color.WHITE);
+        ajouter.setFont(UIUtil.getFont(14));
         c.add(ajouter);
 
         frame.add(c, BorderLayout.SOUTH);

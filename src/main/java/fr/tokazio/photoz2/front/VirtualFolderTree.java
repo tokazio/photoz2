@@ -90,11 +90,11 @@ public class VirtualFolderTree implements MouseListener {
     private void drawSub(final Graphics2D g, final VirtualFolder parent, final int level) {
         final String text = parent.getName();
         if (parent.equals(selected)) {
-            g.setColor(new Color(32, 128, 255));
+            g.setColor(UIUtil.blue());
             g.fillRect(0, y, panelWidth, rowH);
         }
         if (parent.equals(dropping)) {
-            g.setColor(new Color(32, 128, 255));
+            g.setColor(UIUtil.blue());
             g.drawRect(0, y, panelWidth - 2, rowH);
         }
 

@@ -237,14 +237,14 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     }
                     //draw selected
                     if (selection.contains(id) || draggingSelection.contains(id)) {
-                        g.setColor(new Color(32, 128, 255));
+                        g.setColor(UIUtil.blue());
                         g.setStroke(new BasicStroke(3));
                         g.drawRect(x, y, w, (int) w);
                         g.setStroke(new BasicStroke(1));
                     }
                     //draw drag to bar before the image
                     if (id.asInt() == toListId(dragTo)) {
-                        g.setColor(new Color(32, 128, 255));
+                        g.setColor(UIUtil.blue());
                         g.fillRect(x - colMargin / 2 - 1, y, 3, w);
                     }
                 }
@@ -257,7 +257,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
             //Selection rect foreground
             if (pressedAt != null && rectTo != null) {
-                g.setColor(new Color(32, 128, 255));
+                g.setColor(UIUtil.blue());
                 g.setStroke(new BasicStroke(1));
                 g.drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
             }

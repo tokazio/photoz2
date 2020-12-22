@@ -22,3 +22,5 @@ A faire:
 * reperer/nettoyer doublons
 * exporter virtualfolder dans dossier os
 * undo/redo
+* bug drag select
+* scroll when drag select

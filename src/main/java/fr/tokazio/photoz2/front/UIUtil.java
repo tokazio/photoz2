@@ -12,6 +12,9 @@ import java.io.IOException;
 public class UIUtil {
 
     private static final Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
+    public static final Color BLUE = new Color(32, 128, 255);
+    public static final Color RED = new Color(145, 0, 0);
+    public static final Color GREEN = new Color(0, 145, 0);
 
     private UIUtil() {
         //hide
@@ -54,5 +57,22 @@ public class UIUtil {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static Color green() {
+        return GREEN;
+    }
+
+    public static Color red() {
+        return RED;
+    }
+
+    public static Font getFont(int size) {
+        //TODO cache
+        return new Font("Verdana", Font.PLAIN, size);
+    }
+
+    public static Color blue() {
+        return BLUE;
     }
 }

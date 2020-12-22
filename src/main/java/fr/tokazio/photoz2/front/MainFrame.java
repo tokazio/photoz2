@@ -43,11 +43,15 @@ public class MainFrame implements ComponentListener, MouseListener {
 
         final JButton addFolder = new JButton("+");
         butsFolder.add(addFolder, BorderLayout.SOUTH);
-        addFolder.setBackground(Color.WHITE);
+        addFolder.setFont(UIUtil.getFont(14));
+        addFolder.setBackground(UIUtil.green());
+        addFolder.setForeground(Color.WHITE);
 
         final JButton removeFolder = new JButton("-");
         butsFolder.add(removeFolder, BorderLayout.SOUTH);
-        removeFolder.setBackground(Color.WHITE);
+        removeFolder.setFont(UIUtil.getFont(14));
+        removeFolder.setBackground(UIUtil.red());
+        removeFolder.setForeground(Color.WHITE);
         removeFolder.setVisible(false);
 
         final JPanel center = new JPanel();
