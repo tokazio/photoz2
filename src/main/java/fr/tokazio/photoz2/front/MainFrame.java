@@ -131,11 +131,7 @@ public class MainFrame implements ComponentListener, MouseListener {
 
             @Override
             public void dropped() {
-                try {
-                    tree.save(JSON_FILE);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                save();
             }
         });
 
@@ -156,11 +152,7 @@ public class MainFrame implements ComponentListener, MouseListener {
             final VirtualFolder vf = new AddFolderFrame(frame).show().get();
             if (vf != null) {
                 tree.addToSelected(vf);
-                try {
-                    tree.save(JSON_FILE);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                save();
             }
         });
 
@@ -195,20 +187,22 @@ public class MainFrame implements ComponentListener, MouseListener {
         frame.pack();
         frame.setLocationRelativeTo(null);
 
-
         frame.addComponentListener(this);
 
-        pictPanel.setListener(new PictPanelListener() {
-            @Override
-            public void nbPerRowChanged(int nbX) {
-                slider.setValue(slider.getMaximum() - nbX);
-            }
-        });
+        pictPanel.setListener(nbX -> slider.setValue(slider.getMaximum() - nbX));
 
         try {
             tree.load(JSON_FILE);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Error loading json {} file", JSON_FILE, e);
+        }
+    }
+
+    private void save() {
+        try {
+            tree.save(JSON_FILE);
+        } catch (IOException ex) {
+            LOGGER.error("Error saving to json {} file", JSON_FILE, ex);
         }
     }
 

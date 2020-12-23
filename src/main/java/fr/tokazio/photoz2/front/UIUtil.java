@@ -1,6 +1,9 @@
 
 package fr.tokazio.photoz2.front;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +14,8 @@ import java.io.IOException;
  */
 public class UIUtil {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UIUtil.class);
+
     private static final Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
     public static final Color BLUE = new Color(32, 128, 255);
     public static final Color RED = new Color(145, 0, 0);
@@ -18,15 +23,6 @@ public class UIUtil {
 
     private UIUtil() {
         //hide
-    }
-
-    public static void expandAllNodes(JTree tree, int startingIndex, int rowCount) {
-        for (int i = startingIndex; i < rowCount; ++i) {
-            tree.expandRow(i);
-        }
-        if (tree.getRowCount() != rowCount) {
-            expandAllNodes(tree, rowCount, tree.getRowCount());
-        }
     }
 
     public static int getScreenWidth() {
@@ -54,7 +50,7 @@ public class UIUtil {
         try {
             return new ImageIcon(ImageIO.read(UIUtil.class.getResourceAsStream(str)));
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Error loading icon {}", str, e);
         }
         return null;
     }

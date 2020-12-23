@@ -15,7 +15,7 @@ import java.util.List;
 
 public class VirtualFolderTree implements MouseListener {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PictPanel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(VirtualFolderTree.class);
 
     private static final String RSS = "/";
     private static final ImageIcon TOUTES = UIUtil.loadIcon(RSS + "toutes.png");
