@@ -2,6 +2,8 @@ package fr.tokazio.photoz2.front;
 
 import fr.tokazio.photoz2.back.VirtualFolder;
 import fr.tokazio.photoz2.back.VirtualFolderSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +14,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class VirtualFolderTree implements MouseListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PictPanel.class);
 
     private static final String RSS = "/";
     private static final ImageIcon TOUTES = UIUtil.loadIcon(RSS + "toutes.png");
@@ -80,7 +84,9 @@ public class VirtualFolderTree implements MouseListener {
         scrollBar.draw(g);
         final long end = System.currentTimeMillis();
         //le dessin ne devrait pas prendre plus de 33ms (30/sec)
-        System.out.println(System.currentTimeMillis() + "> Drawn " + selectables.size() + " nodes in " + (end - start) + "ms");
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(" Drawn {} nodes in {}ms", selectables.size(), (end - start));
+        }
     }
 
     private void drawSub(final Graphics2D g, final VirtualFolder parent, final int level) {
@@ -113,7 +119,9 @@ public class VirtualFolderTree implements MouseListener {
     public VirtualFolder nodeAtPoint(final Point p) {
         if (p.getX() < panelWidth - scrollBar.getWidth()) {
             final int id = (p.y - scrollBar.scrollY()) / rowH;
-            System.out.println("Node at " + p + " is #" + id);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Node at {} is #{}", p, id);
+            }
             if (id < 1 || id > selectables.size() - 1) { //root not selectable
                 return null;
             }
@@ -127,7 +135,9 @@ public class VirtualFolderTree implements MouseListener {
         if (parent == null) {
             parent = rootVirtualFolder;
         }
-        System.out.println("Add " + virtualFolder.getName() + " to " + parent.getName());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Add {} to {}", virtualFolder.getName(), parent.getName());
+        }
         parent.add(virtualFolder);
         selectables.clear();
         buildSelectables(rootVirtualFolder);
@@ -148,7 +158,9 @@ public class VirtualFolderTree implements MouseListener {
         rootVirtualFolder = VirtualFolderSerializer.getInstance().load(filename);
         selectables.clear();
         buildSelectables(rootVirtualFolder);
-        System.out.println(selectables);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Nodes are {}", selectables);
+        }
         panel.repaint();
     }
 

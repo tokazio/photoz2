@@ -8,7 +8,7 @@ public class ScrollBar implements MouseWheelListener {
 
     private final Component parent;
 
-    private static final boolean withButtons = false;
+    private static final boolean WITH_BUTTONS = false;
 
     private int scrollY = 0;
     private int maxY = 0;
@@ -29,15 +29,15 @@ public class ScrollBar implements MouseWheelListener {
     public void draw(Graphics2D g) {
         if (maxY > 0) {
             final int sx = parent.getWidth() - sw - 2;//scroll position x
-            final int pl = withButtons ? parent.getHeight() - 2 * sw : parent.getHeight();//hauteur entre les buts up et down
+            final int pl = WITH_BUTTONS ? parent.getHeight() - 2 * sw : parent.getHeight();//hauteur entre les buts up et down
             final int sh = (int) ((parent.getHeight() / (float) totY) * pl);//hauteur de la barre
             final int sp = (int) ((Math.abs(scrollY) / (float) totY) * pl);//position de la scrollbar
 
             //bar
             g.setColor(color);
-            g.fillRoundRect(sx, withButtons ? sw + 1 + sp : 1 + sp, sw, sh, sw, sw);
+            g.fillRoundRect(sx, WITH_BUTTONS ? sw + 1 + sp : 1 + sp, sw, sh, sw, sw);
 
-            if (withButtons) {
+            if (WITH_BUTTONS) {
                 //but up
                 g.setColor(Color.LIGHT_GRAY);
                 g.fillRect(sx, 0, sw, sw);

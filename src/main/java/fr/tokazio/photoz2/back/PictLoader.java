@@ -205,10 +205,10 @@ public class PictLoader {
         }
 
         private Image read() throws IOException {
-            FileInputStream fin = new FileInputStream(pictLoader.file);//"a.gif");
-            Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pictLoader.getExt().replace(".", "").toUpperCase());
-            ImageReader imageReader = readers.next();
-            ImageInputStream iis = ImageIO.createImageInputStream(fin);
+            final FileInputStream fin = new FileInputStream(pictLoader.file);
+            final Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pictLoader.getExt().replace(".", "").toUpperCase());
+            final ImageReader imageReader = readers.next();
+            final ImageInputStream iis = ImageIO.createImageInputStream(fin);
             imageReader.setInput(iis, false);
             imageReader.addIIOReadProgressListener(this);
             return imageReader.read(0);

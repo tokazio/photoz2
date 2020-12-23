@@ -339,9 +339,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     }
                     firePendingChanged();
                     panel.repaint();
-                }).addProgressListener((p, v) -> {
-                    panel.repaint();
-                });
+                }).addProgressListener((p, v) -> panel.repaint());
             }
             virtualFolder.setNotFresh();
         }
