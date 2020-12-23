@@ -1,6 +1,5 @@
 package fr.tokazio.photoz2.front;
 
-import fr.tokazio.photoz2.Config;
 import fr.tokazio.photoz2.OS;
 import fr.tokazio.photoz2.back.*;
 import org.slf4j.Logger;
@@ -101,7 +100,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         firstLoad = false;
 
         int nbY = (int) nbRowInPanel();
-        LOGGER.debug(nbX + " col(s), " + nbY + " line(s)");
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("{} col(s), {} line(s)", nbX, nbY);
+        }
 
         //id de la 1ère ligne à dessiner
         int startAtRow = firstRowInPanel();
@@ -110,7 +111,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         int nbShow = nbY * nbX;
 
         int imgStart = startAtRow * nbX;
-        int imgEnd = imgStart + nbShow - 1;// pictList.size() - 1;
+        int imgEnd = imgStart + nbShow - 1;
 
         //Comme on calcul à la ligne, il se peut que la dernière ne soit pas complète
         if (imgEnd > virtualFolder.getPictures().size() - 1) {
@@ -128,7 +129,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private void doLoad(int imgStart, int imgEnd) {
         lastLoadAt = System.currentTimeMillis();
-        LOGGER.debug("Load from " + imgStart + " to " + imgEnd);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Load from {} to {}", imgStart, imgEnd);
+        }
         boolean fired = false;
         for (int i = imgStart; i <= imgEnd; i++) {
             virtualFolder.getPictures().load(i, w(), w());
@@ -165,7 +168,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             g.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
         }
 
-        int colMargin = marginL;
         int x = colMargin;
 
         int w = w();
@@ -236,7 +238,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         g.drawString(txt, x + ((w - tw) / 2f), y + ((w - 10) / 2f));
                     }
                     //debug
-                    if (Config.getInstance().debug()) {
+                    if (LOGGER.isDebugEnabled()) {
                         g.setColor(Color.MAGENTA);
                         g.drawString("#" + i + " (id=" + pictLoader.getId() + ")", x, y + 20);
                     }
@@ -244,7 +246,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     if (selection.contains(id) || draggingSelection.contains(id)) {
                         g.setColor(UIUtil.blue());
                         g.setStroke(new BasicStroke(3));
-                        g.drawRect(x, y, w, (int) w);
+                        g.drawRect(x, y, w, w);
                         g.setStroke(new BasicStroke(1));
                     }
                     //draw drag to bar before the image
@@ -269,8 +271,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         }
         final long end = System.currentTimeMillis();
         //le dessin ne devrait pas prendre plus de 33ms (30/sec)
-        LOGGER.debug(System.currentTimeMillis() + "> Drawn " + nbVraimentDessinee + " images in " + (end - start) + "ms");
-
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Drawn {} images in {} ms", nbVraimentDessinee, (end - start));
+        }
         //scroll
 
         //TODO si on est en bas et qu'on resize il faudrait repositionner les scrolls sinon c'est la merde à l'affichage
@@ -331,7 +334,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         if (virtualFolder.isFresh()) {
             for (PictLoader pl : virtualFolder.getPictures().all()) {
                 pl.addLoadedListener(p -> {
-                    LOGGER.debug("Loading ended for #" + p.getId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Loading ended for #{}", p.getId());
+                    }
                     firePendingChanged();
                     panel.repaint();
                 }).addProgressListener((p, v) -> {
@@ -341,7 +346,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             virtualFolder.setNotFresh();
         }
         this.virtualFolder = virtualFolder;
-        firstLoad = true;
         load();
         scrollY = 0;
         panel.repaint();
@@ -356,12 +360,16 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private void firePendingChanged() {
         if (virtualFolder.getPictures().pendingCount() == 0) {
-            LOGGER.debug("No more pending");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("No more pending");
+            }
             for (PictLoadingListener l : pictLoadingListeners) {
                 l.onEnd();
             }
         } else {
-            LOGGER.debug("Pending " + virtualFolder.getPictures().pendingCount());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Pending {}", virtualFolder.getPictures().pendingCount());
+            }
             for (PictLoadingListener l : pictLoadingListeners) {
                 l.onStart();
             }
@@ -445,7 +453,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         final Component root = SwingUtilities.getRoot(panel);
         final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
         final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
-        LOGGER.debug("Dropped to " + c.getName() + " (" + c.getClass().getName() + ")");
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Dropped to {} ({})", c.getName(), c.getClass().getName());
+        }
         final Point treePoint = SwingUtilities.convertPoint(root, p, c);
         if ("VirtualFolderTree".equals(c.getName())) {
             //drag to tree
@@ -454,14 +464,18 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 for (Id id : selection.all()) {
                     selectedFiles.add(virtualFolder.getPictures().get(id.asInt()));
                 }
-                LOGGER.debug("Dropping " + selectedFiles.size() + " files...");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Dropping {} files...", selectedFiles.size());
+                }
                 for (DropListener<VirtualFolder> l : dropListeners) {
                     final VirtualFolder vf = l.dropTo(treePoint);
                     if (vf != null && !virtualFolder.equals(vf)) {
                         virtualFolder.getPictures().remove(selection);
                         l.drop(selectedFiles);
                         l.dropped();
-                        LOGGER.debug("Dropped successfully");
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Dropped successfully");
+                        }
                     } else {
                         LOGGER.warn("Can't drop to null or same folder");
                     }
@@ -483,7 +497,9 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     int xAt = gridPoint.x;
                     int yAt = gridPoint.y;
 
-                    LOGGER.debug("Click at " + xAt + "," + yAt + " (" + toListId(new Point(xAt, yAt)) + ")");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Click at {},{} ({})", xAt, yAt, toListId(new Point(xAt, yAt)));
+                    }
 
                     if (xAt >= 0 && yAt >= 0) {
                         if (!selection.isEmpty() && e.isShiftDown()) {
@@ -507,13 +523,17 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         }
                     }
                 }
-                LOGGER.debug("Selection: " + selection);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Selection: {}", selection);
+                }
                 pressedAt = null;
             }
             if (draggingFrom != null) {
 
-                LOGGER.debug("Move selection " + selection + " to " + dragTo);
+                if (LOGGER.isDebugEnabled()) {
 
+                    LOGGER.debug("Move selection {} to {}", selection, dragTo);
+                }
                 virtualFolder.getPictures().move(selection, toListId(dragTo));
 
                 selection.clear();
@@ -546,24 +566,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         for (int sx = fx; sx <= ex; sx++) {
             for (int sy = fy; sy <= ey; sy++) {
                 final Id id = new Id(toListId(new Point(sx, sy)));
-                //if (selection.contains(id)) {
-                //    selection.remove(id);
-                //} else {
                 selectTo.add(id);
-                //}
             }
         }
     }
 
-    @Override
-    public void mouseEntered(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-
-    }
 
     private void scrollUp(int scrollAmount) {
         scrollY += scrollAmount;
@@ -600,17 +607,22 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     }
 
     public void setPictNbOnARow(int nb) {
-        LOGGER.debug("Set pict nb on a row:" + nb);
+        if (LOGGER.isDebugEnabled()) {
+
+            LOGGER.debug("Set pict nb on a row: {}", nb);
+        }
         stopLoad();
         this.nbX = nb;
         panel.repaint();
-        //load();
         endScrollAt = System.currentTimeMillis();//trigger load() 250ms later max
     }
 
     public void resized() {
         if (!firstLoad) {
-            LOGGER.debug("Resized");
+            if (LOGGER.isDebugEnabled()) {
+
+                LOGGER.debug("Resized");
+            }
             stopLoad();
             scrollDown(0);
             if (listener != null) {
@@ -656,7 +668,17 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     @Override
     public void mouseMoved(MouseEvent e) {
-
+        //node used
     }
 
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        //not used
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        //not used
+    }
 }

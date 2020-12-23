@@ -27,7 +27,7 @@ public class MainFrame implements ComponentListener, MouseListener {
     public MainFrame() {
         this.frame = new JFrame();
         frame.setTitle("Photoz 2");
-        frame.setDefaultCloseOperation(JDialog.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         frame.addMouseListener(this);
 
@@ -116,7 +116,9 @@ public class MainFrame implements ComponentListener, MouseListener {
             @Override
             public void drop(final PictLoaderList selection) {
                 if (to != null) {
-                    LOGGER.debug("Dropped on '" + to.getName() + "'");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Dropped on '{}'", to.getName());
+                    }
                     to.add(selection);
                 }
             }
@@ -178,7 +180,9 @@ public class MainFrame implements ComponentListener, MouseListener {
         tree.addSelectionListener(vf -> {
             removeFolder.setVisible(vf != null);
             if (vf != null) {
-                LOGGER.debug("Selected " + vf.getName());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Selected {}", vf.getName());
+                }
                 lblFolderTitle.setText(vf.getFullName());
                 lblCount.setText(count(vf));
                 pictPanel.loadVirtualFolder(vf);
@@ -225,41 +229,41 @@ public class MainFrame implements ComponentListener, MouseListener {
 
     @Override
     public void componentMoved(ComponentEvent e) {
-
+        //not used
     }
 
     @Override
     public void componentShown(ComponentEvent e) {
-
+        //not used
     }
 
     @Override
     public void componentHidden(ComponentEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseClicked(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseEntered(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
-
+        //not used
     }
 }

@@ -13,7 +13,7 @@ public class AddFolderFrame {
 
     public AddFolderFrame(Frame parent) {
         frame = new JDialog(parent, "Nouveau dossier", Dialog.ModalityType.APPLICATION_MODAL);
-        frame.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
         frame.setBackground(Color.WHITE);
 

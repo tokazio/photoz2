@@ -2,26 +2,26 @@ package fr.tokazio.photoz2;
 
 public class OS {
 
-    private static String OS = System.getProperty("os.name").toLowerCase();
+    private static final String OS_NAME = System.getProperty("os.name").toLowerCase();
 
     private OS() {
         super();
     }
 
     public static boolean isWindows() {
-        return (OS.contains("win"));
+        return (OS_NAME.contains("win"));
     }
 
     public static boolean isMac() {
-        return (OS.contains("mac"));
+        return (OS_NAME.contains("mac"));
     }
 
     public static boolean isUnix() {
-        return (OS.contains("nix") || OS.contains("nux") || OS.indexOf("aix") > 0);
+        return OS_NAME.contains("nix") || OS_NAME.contains("nux") || OS_NAME.contains("aix");
     }
 
     public static boolean isSolaris() {
-        return (OS.contains("sunos"));
+        return (OS_NAME.contains("sunos"));
     }
 
 }

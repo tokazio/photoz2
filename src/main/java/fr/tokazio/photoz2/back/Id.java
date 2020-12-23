@@ -2,12 +2,12 @@ package fr.tokazio.photoz2.back;
 
 import java.util.Objects;
 
-public class Id implements Comparable {
+public class Id implements Comparable<Id> {
 
-    private final Integer id;
+    private final Integer value;
 
-    public Id(final int id) {
-        this.id = id;
+    public Id(final int value) {
+        this.value = value;
     }
 
     @Override
@@ -15,28 +15,27 @@ public class Id implements Comparable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Id id1 = (Id) o;
-        return id == id1.id;
+        return value == id1.value;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(value);
     }
 
     @Override
     public String toString() {
-        return id + "";
+        return value + "";
     }
 
     @Override
-    public int compareTo(Object o) {
+    public int compareTo(Id o) {
         if (this == o) return 0;
         if (o == null || getClass() != o.getClass()) return 1;
-        Id id1 = (Id) o;
-        return id.compareTo(id1.id);
+        return value.compareTo(o.value);
     }
 
     public int asInt() {
-        return id;
+        return value;
     }
 }

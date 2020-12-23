@@ -14,13 +14,9 @@ import java.util.List;
 public class VirtualFolderTree implements MouseListener {
 
     private static final String RSS = "/";
-    //    public static final ImageIcon COLLAPSED = UIUtil.loadIcon(RSS + "collapsed.png");
-//    public static final ImageIcon EXPANDED = UIUtil.loadIcon(RSS + "expanded.png");
     private static final ImageIcon TOUTES = UIUtil.loadIcon(RSS + "toutes.png");
     private static final ImageIcon UNE = UIUtil.loadIcon(RSS + "une.png");
     private static final ImageIcon FOLDER = UIUtil.loadIcon(RSS + "folder.png");
-//    private static final ImageIcon PETIT = UIUtil.loadIcon(RSS + "petit.png");
-//    private static final ImageIcon GRAND = UIUtil.loadIcon(RSS + "grand.png");
 
     private final JPanel panel;
     private final List<VirtualFolder> selectables = new LinkedList<>();
@@ -56,9 +52,9 @@ public class VirtualFolderTree implements MouseListener {
         panel.setName(getClass().getSimpleName());
         panel.addMouseListener(this);
         panel.addPropertyChangeListener("dropping-begin", evt -> {
-            long x = (long) evt.getOldValue();
-            long y = (long) evt.getNewValue();
-            final Point p = new Point((int) x, (int) y);
+            long xEvt = (long) evt.getOldValue();
+            long yEvt = (long) evt.getNewValue();
+            final Point p = new Point((int) xEvt, (int) yEvt);
             dropping = nodeAtPoint(p);
             panel.repaint();
         });
@@ -174,22 +170,22 @@ public class VirtualFolderTree implements MouseListener {
 
     @Override
     public void mousePressed(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseEntered(MouseEvent e) {
-
+        //not used
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
-
+        //not used
     }
 
     public void resized() {

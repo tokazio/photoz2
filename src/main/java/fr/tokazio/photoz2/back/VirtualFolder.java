@@ -72,7 +72,9 @@ public class VirtualFolder {
 
     public void add(final PictLoaderList selectedFiles) {
         pictures.add(selectedFiles);
-        LOGGER.debug(selectedFiles.size() + " files added to " + name);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("{} files added to {}", selectedFiles.size(), name);
+        }
     }
 
     void setParent(VirtualFolder parent) {

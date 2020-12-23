@@ -2,6 +2,8 @@ package fr.tokazio.photoz2.back;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -17,6 +19,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class PictLoader {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PictLoader.class);
+
 
     @JsonIgnore
     private final List<LoadedListener> loadedListeners = new LinkedList<>();
@@ -184,12 +189,10 @@ public class PictLoader {
         protected Void doInBackground() {
             pictLoader.state = State.LOADING;
             try {
-                //image = PictUtils.getScaledImage(ImageIO.read(file), w, h);
-                pictLoader.image = PictUtils.getScaledImage(read(this), pictLoader.w, pictLoader.h);
+                pictLoader.image = PictUtils.getScaledImage(read(), pictLoader.w, pictLoader.h);
                 pictLoader.state = State.LOADED;
             } catch (IOException e) {
-                System.err.println("Error reading pict #" + pictLoader.id);
-                e.printStackTrace();
+                LOGGER.error("Error reading pict #" + pictLoader.id, e);
                 pictLoader.state = State.ERROR;
                 pictLoader.error = e;
             }
@@ -201,7 +204,7 @@ public class PictLoader {
             pictLoader.fireLoaded();
         }
 
-        private Image read(SwingWorker<Void, Float> sw) throws IOException {
+        private Image read() throws IOException {
             FileInputStream fin = new FileInputStream(pictLoader.file);//"a.gif");
             Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(pictLoader.getExt().replace(".", "").toUpperCase());
             ImageReader imageReader = readers.next();
@@ -212,45 +215,41 @@ public class PictLoader {
         }
 
         public void imageComplete(ImageReader source) {
-            //System.out.println("image complete " + source);
             publish(100f);
         }
 
         public void imageProgress(ImageReader source, float percentageDone) {
             publish(percentageDone);
-            //System.out.println("image progress " + source + ": " + percentageDone + "%");
         }
 
         public void imageStarted(ImageReader source, int imageIndex) {
-            //System.out.println("image #" + imageIndex + " started " + source);
             publish(0f);
         }
 
         public void readAborted(ImageReader source) {
-            //System.out.println("read aborted " + source);
+            //not used
         }
 
         public void sequenceComplete(ImageReader source) {
-            //System.out.println("sequence complete " + source);
+            //not used
         }
 
         public void sequenceStarted(ImageReader source, int minIndex) {
-            //System.out.println("sequence started " + source + ": " + minIndex);
+            //not used
         }
 
         public void thumbnailComplete(ImageReader source) {
-            //System.out.println("thumbnail complete " + source);
+            //not used
         }
 
         public void thumbnailProgress(ImageReader source, float percentageDone) {
-            //System.out.println("thumbnail started " + source + ": " + percentageDone + "%");
+            //not used
         }
 
         public void thumbnailStarted(ImageReader source, int imageIndex, int thumbnailIndex) {
-            //System.out.println("thumbnail progress " + source + ", " + thumbnailIndex + " of "             + imageIndex);
+            //not used
         }
 
     }
-
 
 }

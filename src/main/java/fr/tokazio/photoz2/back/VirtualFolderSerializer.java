@@ -52,10 +52,9 @@ public class VirtualFolderSerializer {
         final File f = new File(filename);
         if (!f.exists()) {
             return new VirtualFolder("Tous", null);
-//            throw new FileNotFoundException("Can't load '" + filename + "' because it not exists");
         }
         final VirtualFolder root = mapper.readValue(f, VirtualFolder.class);
-        //This wil place the parent field of each children
+        //This wil set the parent field of each children
         subLoad(root);
         return root;
     }
