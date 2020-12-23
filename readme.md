@@ -5,7 +5,7 @@
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=tokazio_photoz2&metric=ncloc)](https://sonarcloud.io/dashboard?id=tokazio_photoz2)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=tokazio_photoz2&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=tokazio_photoz2)
 
-voir ancien Photoz(1) sous maven
+voir ancien Photoz(1) sous maven (https://bitbucket.org/tokazio/photos/src/master/)
 
 A faire:
 
