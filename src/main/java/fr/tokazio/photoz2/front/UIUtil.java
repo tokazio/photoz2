@@ -1,6 +1,7 @@
 
 package fr.tokazio.photoz2.front;
 
+import fr.tokazio.photoz2.back.DraggingData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,4 +72,17 @@ public class UIUtil {
     public static Color blue() {
         return BLUE;
     }
+
+    /**
+     * Work only for components on the same frame/dialog
+     */
+    public static DraggingData getDraggingDate(Component source, Point sourcePoint) {
+        final Component root = SwingUtilities.getRoot(source);
+        final Point p = SwingUtilities.convertPoint(source, sourcePoint, root);
+        final Component target = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
+        final Point targetPoint = SwingUtilities.convertPoint(root, p, target);
+        return new DraggingData(source, sourcePoint, target, targetPoint);
+    }
+
+
 }

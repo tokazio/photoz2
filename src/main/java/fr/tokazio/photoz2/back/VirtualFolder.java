@@ -66,8 +66,7 @@ public class VirtualFolder {
     }
 
     public String getFullName() {
-        //TODO name from parent
-        return name;
+        return parent != null ? parent.getFullName() + " > " + name : name;
     }
 
     public void add(final PictLoaderList selectedFiles) {
@@ -77,7 +76,7 @@ public class VirtualFolder {
         }
     }
 
-    void setParent(VirtualFolder parent) {
+    void setParent(final VirtualFolder parent) {
         this.parent = parent;
     }
 
@@ -90,7 +89,7 @@ public class VirtualFolder {
         return parent;
     }
 
-    public boolean remove(VirtualFolder vf) {
+    public boolean remove(final VirtualFolder vf) {
         return children.remove(vf);
     }
 

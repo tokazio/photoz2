@@ -11,5 +11,5 @@ public interface DropListener<T extends VirtualFolder> {
 
     T dropTo(Point dropPoint);
 
-    void dropped();
+    boolean dropped();
 }

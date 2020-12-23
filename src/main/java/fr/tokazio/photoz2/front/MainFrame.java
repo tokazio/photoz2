@@ -19,20 +19,65 @@ public class MainFrame implements ComponentListener, MouseListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainFrame.class);
 
     private static final String JSON_FILE = "folders.json";
+    public static final String APP_TITLE = "Photoz 2";
 
     private final JFrame frame;
-    private final PictPanel pictPanel;
-    private final VirtualFolderTree tree;
+
+    private PictPanel pictPanel;
+    private VirtualFolderTree tree;
+    private JButton addFolder;
+    private JButton removeFolder;
+    private JSlider slider;
+    private JLabel vide1;
+    private JLabel lblFolderTitle;
+    private JLabel lblCount;
 
     public MainFrame() {
-        this.frame = new JFrame();
-        frame.setTitle("Photoz 2");
+        frame = new JFrame();
+        frame.setTitle(APP_TITLE);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-        frame.addMouseListener(this);
-
+        frame.setPreferredSize(new Dimension(800, 600));
         frame.setLayout(new BorderLayout());
+        //=======================================================================
+        frame.addMouseListener(this);
+        frame.addComponentListener(this);
+        //=======================================================================
+        makeLeft();
+        makeCenter();
+        makeListeners();
+        //=======================================================================
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        //=======================================================================
+        load();
+    }
 
+    private void load() {
+        try {
+            tree.load(JSON_FILE);
+        } catch (IOException e) {
+            LOGGER.error("Error loading json {} file", JSON_FILE, e);
+        }
+    }
+
+    private void save() {
+        try {
+            tree.save(JSON_FILE);
+        } catch (IOException ex) {
+            LOGGER.error("Error saving to json {} file", JSON_FILE, ex);
+        }
+    }
+
+    private String count(final VirtualFolder vf) {
+        int c = vf.getPictures().size();
+        return c + " élément" + (c > 1 ? "s" : "");
+    }
+
+    public void show() {
+        frame.setVisible(true);
+    }
+
+    private void makeLeft() {
         final JPanel left = new JPanel();
         frame.add(left, BorderLayout.WEST);
         left.setPreferredSize(new Dimension(200, 0));
@@ -46,7 +91,7 @@ public class MainFrame implements ComponentListener, MouseListener {
         left.add(butsFolder, BorderLayout.SOUTH);
         butsFolder.setBackground(Color.WHITE);
 
-        final JButton addFolder = new JButton("+");
+        addFolder = new JButton("+");
         butsFolder.add(addFolder, BorderLayout.SOUTH);
         addFolder.setFont(UIUtil.getFont(14));
         addFolder.setBackground(UIUtil.green());
@@ -54,7 +99,7 @@ public class MainFrame implements ComponentListener, MouseListener {
             addFolder.setForeground(Color.WHITE);
         }
 
-        final JButton removeFolder = new JButton("-");
+        removeFolder = new JButton("-");
         butsFolder.add(removeFolder, BorderLayout.SOUTH);
         removeFolder.setFont(UIUtil.getFont(14));
         removeFolder.setBackground(UIUtil.red());
@@ -62,7 +107,9 @@ public class MainFrame implements ComponentListener, MouseListener {
             removeFolder.setForeground(Color.WHITE);
         }
         removeFolder.setVisible(false);
+    }
 
+    private void makeCenter() {
         final JPanel center = new JPanel();
         center.setLayout(new BorderLayout());
         frame.add(center, BorderLayout.CENTER);
@@ -73,11 +120,11 @@ public class MainFrame implements ComponentListener, MouseListener {
         toolsTop.setBackground(Color.WHITE);
         toolsTop.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        final JLabel lblFolderTitle = new JLabel("Choisir un dossier...");
+        lblFolderTitle = new JLabel("Choisir un dossier...");
         toolsTop.add(lblFolderTitle);
         lblFolderTitle.setForeground(Color.DARK_GRAY);
 
-        final JLabel lblCount = new JLabel("");
+        lblCount = new JLabel("");
         toolsTop.add(lblCount);
         lblCount.setHorizontalAlignment(SwingConstants.RIGHT);
         lblCount.setForeground(Color.DARK_GRAY);
@@ -92,7 +139,7 @@ public class MainFrame implements ComponentListener, MouseListener {
         toolsBottom.setBackground(Color.WHITE);
         toolsBottom.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        final JLabel vide1 = new JLabel();
+        vide1 = new JLabel();
         vide1.setForeground(Color.DARK_GRAY);
         toolsBottom.add(vide1);
 
@@ -100,14 +147,16 @@ public class MainFrame implements ComponentListener, MouseListener {
         vide2.setForeground(Color.DARK_GRAY);
         toolsBottom.add(vide2);
 
-        final JSlider slider = new JSlider();
+        slider = new JSlider();
         toolsBottom.add(slider);
         slider.setBackground(Color.WHITE);
         slider.setMinimum(1);
         slider.setMaximum(24);
         slider.setValue(slider.getMaximum() - 4);
 
-        //+=======================================================================
+    }
+
+    private void makeListeners() {
 
         pictPanel.addDropListener(new DropListener<>() {
 
@@ -130,8 +179,9 @@ public class MainFrame implements ComponentListener, MouseListener {
             }
 
             @Override
-            public void dropped() {
+            public boolean dropped() {
                 save();
+                return true;
             }
         });
 
@@ -161,11 +211,7 @@ public class MainFrame implements ComponentListener, MouseListener {
             if (vf != null) {
                 //TODO ask confirm
                 tree.remove(vf);
-                try {
-                    tree.save(JSON_FILE);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                save();
             }
         });
 
@@ -181,38 +227,8 @@ public class MainFrame implements ComponentListener, MouseListener {
             }
         });
 
-        //+=======================================================================
-
-        frame.setPreferredSize(new Dimension(800, 600));
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-
-        frame.addComponentListener(this);
-
         pictPanel.setListener(nbX -> slider.setValue(slider.getMaximum() - nbX));
 
-        try {
-            tree.load(JSON_FILE);
-        } catch (IOException e) {
-            LOGGER.error("Error loading json {} file", JSON_FILE, e);
-        }
-    }
-
-    private void save() {
-        try {
-            tree.save(JSON_FILE);
-        } catch (IOException ex) {
-            LOGGER.error("Error saving to json {} file", JSON_FILE, ex);
-        }
-    }
-
-    private String count(final VirtualFolder vf) {
-        int c = vf.getPictures().size();
-        return c + " élément" + (c > 1 ? "s" : "");
-    }
-
-    public void show() {
-        frame.setVisible(true);
     }
 
     @Override

@@ -15,13 +15,11 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PictPanel.class);
 
-
     private final JPanel panel;
 
     private VirtualFolder virtualFolder = new VirtualFolder("", "");
 
     private final List<PictLoadingListener> pictLoadingListeners = new LinkedList<>();
-
 
     private final List<DropListener<VirtualFolder>> dropListeners = new LinkedList<>();
     private int panelWidth = 1;//avoid /0
@@ -152,7 +150,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     }
 
     private void draw(final Graphics2D g) {
-
         final long start = System.currentTimeMillis();
 
         //background
@@ -161,12 +158,8 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
         g.setFont(g.getFont().deriveFont(10f));
 
-        //Selection rect background
         final Rectangle selectionRect = computeSelectionRect();
-        if (pressedAt != null && rectTo != null) {
-            g.setColor(new Color(148, 180, 255));
-            g.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
-        }
+        drawBackgroundSelection(g, selectionRect);
 
         int x = colMargin;
 
@@ -228,7 +221,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         g.fillRect(x + w - tw - 6, y + w - 18, tw + 6, 18);
                         g.setColor(Color.WHITE);
                         g.drawString(pictLoader.getExt(), x + w - tw - 3, y + w - 5);
-
                     }
                     //error
                     if (pictLoader.hasError()) {
@@ -262,12 +254,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
             x += w + colMargin;
             i++;
 
-            //Selection rect foreground
-            if (pressedAt != null && rectTo != null) {
-                g.setColor(UIUtil.blue());
-                g.setStroke(new BasicStroke(1));
-                g.drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
-            }
+            drawForegroundSelection(g, selectionRect);
         }
         final long end = System.currentTimeMillis();
         //le dessin ne devrait pas prendre plus de 33ms (30/sec)
@@ -310,6 +297,22 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         g.fillRect(sx, panelHeight - sw, sw, sw);
         g.setColor(Color.DARK_GRAY);
         g.drawRect(sx, panelHeight - sw, sw, sw);
+    }
+
+    private void drawForegroundSelection(Graphics2D g, Rectangle selectionRect) {
+        //Selection rect foreground
+        if (pressedAt != null && rectTo != null) {
+            g.setColor(UIUtil.blue());
+            g.setStroke(new BasicStroke(1));
+            g.drawRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+        }
+    }
+
+    private void drawBackgroundSelection(Graphics2D g, Rectangle selectionRect) {
+        if (pressedAt != null && rectTo != null) {
+            g.setColor(new Color(148, 180, 255));
+            g.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+        }
     }
 
     private Rectangle computeSelectionRect() {
@@ -448,42 +451,12 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     @Override
     public void mouseReleased(final MouseEvent e) {
-        final Component root = SwingUtilities.getRoot(panel);
-        final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
-        final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
+        final DraggingData draggingData = UIUtil.getDraggingDate(panel, e.getPoint());
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Dropped to {} ({})", c.getName(), c.getClass().getName());
+            LOGGER.debug("Dropping to {} ({})", draggingData.getTarget().getName(), draggingData.getTarget().getClass().getName());
         }
-        final Point treePoint = SwingUtilities.convertPoint(root, p, c);
-        if ("VirtualFolderTree".equals(c.getName())) {
-            //drag to tree
-            if (!dropListeners.isEmpty()) {
-                final PictLoaderList selectedFiles = new PictLoaderList();
-                for (Id id : selection.all()) {
-                    selectedFiles.add(virtualFolder.getPictures().get(id.asInt()));
-                }
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Dropping {} files...", selectedFiles.size());
-                }
-                for (DropListener<VirtualFolder> l : dropListeners) {
-                    final VirtualFolder vf = l.dropTo(treePoint);
-                    if (vf != null && !virtualFolder.equals(vf)) {
-                        virtualFolder.getPictures().remove(selection);
-                        l.drop(selectedFiles);
-                        l.dropped();
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Dropped successfully");
-                        }
-                    } else {
-                        LOGGER.warn("Can't drop to null or same folder");
-                    }
-                }
-                panel.repaint();
-            }
-            c.firePropertyChange("dropping-end", treePoint.x, treePoint.y);
-            selection.clear();
-            draggingFrom = null;
-            dragTo = null;
+        if ("VirtualFolderTree".equals(draggingData.getTarget().getName())) {
+            releaseDropping(draggingData);
         } else {
             if (pressedAt != null) {
                 if (rectTo != null) {
@@ -527,20 +500,55 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 pressedAt = null;
             }
             if (draggingFrom != null) {
-
-                if (LOGGER.isDebugEnabled()) {
-
-                    LOGGER.debug("Move selection {} to {}", selection, dragTo);
-                }
-                virtualFolder.getPictures().move(selection, toListId(dragTo));
-
-                selection.clear();
-
-                draggingFrom = null;
-                dragTo = null;
+                releaseDragging();
             }
         }
         panel.repaint();
+    }
+
+    private void releaseDropping(final DraggingData draggingData) {
+        if (!dropListeners.isEmpty()) {
+            final PictLoaderList selectedFiles = new PictLoaderList();
+            for (Id id : selection.all()) {
+                selectedFiles.add(virtualFolder.getPictures().get(id.asInt()));
+            }
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Dropping {} files...", selectedFiles.size());
+            }
+            for (DropListener<VirtualFolder> l : dropListeners) {
+                final VirtualFolder target = l.dropTo(draggingData.getTargetPoint());
+                if (targetIsValidAndDifferentFromSource(target)) {
+                    virtualFolder.getPictures().remove(selection);
+                    l.drop(selectedFiles);
+                    if (l.dropped()) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Dropped successfully");
+                        }
+                    }
+                } else {
+                    LOGGER.warn("Can't drop to null or same folder");
+                }
+            }
+            panel.repaint();
+        }
+        draggingData.getTarget().firePropertyChange("dropping-end", draggingData.getTargetPoint().x, draggingData.getTargetPoint().y);
+        selection.clear();
+        draggingFrom = null;
+        dragTo = null;
+    }
+
+    private boolean targetIsValidAndDifferentFromSource(VirtualFolder target) {
+        return target != null && !virtualFolder.equals(target);
+    }
+
+    private void releaseDragging() {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Move selection {} to {}", selection, dragTo);
+        }
+        virtualFolder.getPictures().move(selection, toListId(dragTo));
+        selection.clear();
+        draggingFrom = null;
+        dragTo = null;
     }
 
     private void detectClickAndDragSelection(final Selection selectTo) {
