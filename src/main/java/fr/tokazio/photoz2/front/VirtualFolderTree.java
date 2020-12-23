@@ -22,14 +22,15 @@ public class VirtualFolderTree implements MouseListener {
     private static final ImageIcon UNE = UIUtil.loadIcon(RSS + "une.png");
     private static final ImageIcon FOLDER = UIUtil.loadIcon(RSS + "folder.png");
 
+    private static final int MARGIN_L = 5;
+    private static final int DECAY = 20;
+    private static final int ROW_H = 25;
+
     private final JPanel panel;
     private final List<VirtualFolder> selectables = new LinkedList<>();
     private final List<VirtualFolderTreeSelectionListener> treeSelectionListeners = new LinkedList<>();
     private int panelWidth = 1;//avoid /0
     private int panelHeight = 1;//avoid /0
-    private final int marginL = 5;
-    private final int decay = 20;
-    private final int rowH = 25;
     private VirtualFolder rootVirtualFolder;
     private VirtualFolder selected;
     private VirtualFolder dropping;
@@ -75,7 +76,7 @@ public class VirtualFolderTree implements MouseListener {
         g.setColor(Color.DARK_GRAY);
         g.fillRect(0, 0, panelWidth, panelHeight);
 
-        scrollBar.defineElements(selectables.size(), rowH);
+        scrollBar.defineElements(selectables.size(), ROW_H);
 
         y = scrollBar.scrollY();
         //nodes
@@ -93,24 +94,24 @@ public class VirtualFolderTree implements MouseListener {
         final String text = parent.getName();
         if (parent.equals(selected)) {
             g.setColor(UIUtil.blue());
-            g.fillRect(0, y, panelWidth, rowH);
+            g.fillRect(0, y, panelWidth, ROW_H);
         }
         if (parent.equals(dropping)) {
             g.setColor(UIUtil.blue());
-            g.drawRect(0, y, panelWidth - 2, rowH);
+            g.drawRect(0, y, panelWidth - 2, ROW_H);
         }
 
         if (!parent.hasAParent()) {
-            g.drawImage(TOUTES.getImage(), marginL + decay * level, y + 5, null);
+            g.drawImage(TOUTES.getImage(), MARGIN_L + DECAY * level, y + 5, null);
         } else if (parent.getChildCount() > 0) {
-            g.drawImage(FOLDER.getImage(), marginL + decay * level, y + 5, null);
+            g.drawImage(FOLDER.getImage(), MARGIN_L + DECAY * level, y + 5, null);
         } else {
-            g.drawImage(UNE.getImage(), marginL + decay * level, y + 7, null);
+            g.drawImage(UNE.getImage(), MARGIN_L + DECAY * level, y + 7, null);
         }
 
         g.setColor(Color.WHITE);
-        g.drawString(text, marginL + decay * level + 25, y + 17);
-        y += rowH;
+        g.drawString(text, MARGIN_L + DECAY * level + 25, y + 17);
+        y += ROW_H;
         for (VirtualFolder vf : parent.getChildren().all()) {
             drawSub(g, vf, level + 1);
         }
@@ -118,7 +119,7 @@ public class VirtualFolderTree implements MouseListener {
 
     public VirtualFolder nodeAtPoint(final Point p) {
         if (p.getX() < panelWidth - scrollBar.getWidth()) {
-            final int id = (p.y - scrollBar.scrollY()) / rowH;
+            final int id = (p.y - scrollBar.scrollY()) / ROW_H;
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Node at {} is #{}", p, id);
             }

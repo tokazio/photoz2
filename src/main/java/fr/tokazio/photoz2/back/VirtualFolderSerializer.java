@@ -72,10 +72,18 @@ public class VirtualFolderSerializer {
 
     public void save(final VirtualFolder virtualFolder, final String filename) throws IOException {
         if (virtualFolder.hasAParent()) {
+            save(getRoot(virtualFolder), filename);
             //TODO save root (parent==null)
             throw new UnsupportedOperationException("Can't save a non root virtual folder");
         }
         mapper.writeValue(new File(filename), virtualFolder);
+    }
+
+    private VirtualFolder getRoot(VirtualFolder virtualFolder) {
+        if (virtualFolder.hasAParent()) {
+            return getRoot(virtualFolder.getParent());
+        }
+        return virtualFolder;
     }
 
 }

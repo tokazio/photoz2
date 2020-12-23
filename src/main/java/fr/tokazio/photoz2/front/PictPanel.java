@@ -65,7 +65,6 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
         this.panel.addMouseListener(this);
         this.panel.addMouseWheelListener(this);
-        //TODO drag scroll bar
         this.panel.addMouseMotionListener(this);
 
         //detection de la fin du scroll pour ne pas maj trop souvent
