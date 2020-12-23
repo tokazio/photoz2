@@ -2,6 +2,8 @@ package fr.tokazio.photoz2.front;
 
 import fr.tokazio.photoz2.back.PictLoaderList;
 import fr.tokazio.photoz2.back.VirtualFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +14,8 @@ import java.awt.event.MouseListener;
 import java.io.IOException;
 
 public class MainFrame implements ComponentListener, MouseListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MainFrame.class);
 
     private static final String JSON_FILE = "folders.json";
 
@@ -107,7 +111,7 @@ public class MainFrame implements ComponentListener, MouseListener {
             @Override
             public void drop(final PictLoaderList selection) {
                 if (to != null) {
-                    System.out.println("Dropped on '" + to.getName() + "'");
+                    LOGGER.debug("Dropped on '" + to.getName() + "'");
                     to.add(selection);
                 }
             }
@@ -169,7 +173,7 @@ public class MainFrame implements ComponentListener, MouseListener {
         tree.addSelectionListener(vf -> {
             removeFolder.setVisible(vf != null);
             if (vf != null) {
-                System.out.println("Selected " + vf.getName());
+                LOGGER.debug("Selected " + vf.getName());
                 lblFolderTitle.setText(vf.getFullName());
                 lblCount.setText(count(vf));
                 pictPanel.loadVirtualFolder(vf);

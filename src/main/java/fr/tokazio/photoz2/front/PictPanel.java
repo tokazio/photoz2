@@ -3,6 +3,8 @@ package fr.tokazio.photoz2.front;
 import fr.tokazio.photoz2.Config;
 import fr.tokazio.photoz2.OS;
 import fr.tokazio.photoz2.back.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +13,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class PictPanel implements MouseListener, MouseWheelListener, MouseMotionListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PictPanel.class);
+
 
     private final JPanel panel;
 
@@ -80,7 +85,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     //Stop le chargement de toutes les images
     private void stopLoad() {
         virtualFolder.getPictures().stopLoading();
-        System.out.println("Stoped loading");
+        LOGGER.debug("Stopped loading");
     }
 
     private float nbRowInPanel() {
@@ -96,7 +101,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         firstLoad = false;
 
         int nbY = (int) nbRowInPanel();
-        System.out.println(nbX + " col(s), " + nbY + " line(s)");
+        LOGGER.debug(nbX + " col(s), " + nbY + " line(s)");
 
         //id de la 1ère ligne à dessiner
         int startAtRow = firstRowInPanel();
@@ -123,7 +128,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private void doLoad(int imgStart, int imgEnd) {
         lastLoadAt = System.currentTimeMillis();
-        System.out.println("Load from " + imgStart + " to " + imgEnd);
+        LOGGER.debug("Load from " + imgStart + " to " + imgEnd);
         boolean fired = false;
         for (int i = imgStart; i <= imgEnd; i++) {
             virtualFolder.getPictures().load(i, w(), w());
@@ -264,7 +269,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         }
         final long end = System.currentTimeMillis();
         //le dessin ne devrait pas prendre plus de 33ms (30/sec)
-        System.out.println(System.currentTimeMillis() + "> Drawn " + nbVraimentDessinee + " images in " + (end - start) + "ms");
+        LOGGER.debug(System.currentTimeMillis() + "> Drawn " + nbVraimentDessinee + " images in " + (end - start) + "ms");
 
         //scroll
 
@@ -321,26 +326,12 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         return new Rectangle(0, 0, 0, 0);
     }
 
-    /*
-    public void loadFiles(List<File> in) {
-        int i = 0;
-        for (File f : in) {
-            pictLoaderList.add(new PictLoader(i++, f).addLoadedListener((p) -> {
-                System.out.println("Loading ended for #" + p.getId());
-                firePendingChanged();
-                panel.repaint();
-            }).addProgressListener((p, v) -> panel.repaint()));
-        }
-    }
-
-     */
-
     public void loadVirtualFolder(final VirtualFolder virtualFolder) {
         firstLoad = true;
         if (virtualFolder.isFresh()) {
             for (PictLoader pl : virtualFolder.getPictures().all()) {
                 pl.addLoadedListener(p -> {
-                    System.out.println("Loading ended for #" + p.getId());
+                    LOGGER.debug("Loading ended for #" + p.getId());
                     firePendingChanged();
                     panel.repaint();
                 }).addProgressListener((p, v) -> {
@@ -365,12 +356,12 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     private void firePendingChanged() {
         if (virtualFolder.getPictures().pendingCount() == 0) {
-            System.out.println("No more pending");
+            LOGGER.debug("No more pending");
             for (PictLoadingListener l : pictLoadingListeners) {
                 l.onEnd();
             }
         } else {
-            System.out.println("Pending " + virtualFolder.getPictures().pendingCount());
+            LOGGER.debug("Pending " + virtualFolder.getPictures().pendingCount());
             for (PictLoadingListener l : pictLoadingListeners) {
                 l.onStart();
             }
@@ -454,7 +445,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
         final Component root = SwingUtilities.getRoot(panel);
         final Point p = SwingUtilities.convertPoint(panel, e.getPoint(), root);
         final Component c = SwingUtilities.getDeepestComponentAt(root, p.x, p.y);
-        System.out.println("Dropped to " + c.getName() + " (" + c.getClass().getName() + ")");
+        LOGGER.debug("Dropped to " + c.getName() + " (" + c.getClass().getName() + ")");
         final Point treePoint = SwingUtilities.convertPoint(root, p, c);
         if ("VirtualFolderTree".equals(c.getName())) {
             //drag to tree
@@ -463,16 +454,16 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 for (Id id : selection.all()) {
                     selectedFiles.add(virtualFolder.getPictures().get(id.asInt()));
                 }
-                System.out.println("Dropping " + selectedFiles.size() + " files...");
+                LOGGER.debug("Dropping " + selectedFiles.size() + " files...");
                 for (DropListener<VirtualFolder> l : dropListeners) {
                     final VirtualFolder vf = l.dropTo(treePoint);
                     if (vf != null && !virtualFolder.equals(vf)) {
                         virtualFolder.getPictures().remove(selection);
                         l.drop(selectedFiles);
                         l.dropped();
-                        System.out.println("Dropped successfully");
+                        LOGGER.debug("Dropped successfully");
                     } else {
-                        System.out.println("Can't drop to null or same folder");
+                        LOGGER.warn("Can't drop to null or same folder");
                     }
                 }
                 panel.repaint();
@@ -492,7 +483,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                     int xAt = gridPoint.x;
                     int yAt = gridPoint.y;
 
-                    System.out.println("Click at " + xAt + "," + yAt + " (" + toListId(new Point(xAt, yAt)) + ")");
+                    LOGGER.debug("Click at " + xAt + "," + yAt + " (" + toListId(new Point(xAt, yAt)) + ")");
 
                     if (xAt >= 0 && yAt >= 0) {
                         if (!selection.isEmpty() && e.isShiftDown()) {
@@ -516,12 +507,12 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                         }
                     }
                 }
-                System.out.println("Selection: " + selection);
+                LOGGER.debug("Selection: " + selection);
                 pressedAt = null;
             }
             if (draggingFrom != null) {
 
-                System.out.println("Move selection " + selection + " to " + dragTo);
+                LOGGER.debug("Move selection " + selection + " to " + dragTo);
 
                 virtualFolder.getPictures().move(selection, toListId(dragTo));
 
@@ -609,7 +600,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
     }
 
     public void setPictNbOnARow(int nb) {
-        System.out.println("Set pict nb on a row:" + nb);
+        LOGGER.debug("Set pict nb on a row:" + nb);
         stopLoad();
         this.nbX = nb;
         panel.repaint();
@@ -619,7 +610,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
 
     public void resized() {
         if (!firstLoad) {
-            System.out.println("Resized");
+            LOGGER.debug("Resized");
             stopLoad();
             scrollDown(0);
             if (listener != null) {
@@ -646,6 +637,7 @@ public class PictPanel implements MouseListener, MouseWheelListener, MouseMotion
                 scrollY = -maxY;
             }
             scrollFrom = e.getPoint();
+            endScrollAt = System.currentTimeMillis();
         }
         if (draggingFrom != null) {
             final Component root = SwingUtilities.getRoot(panel);

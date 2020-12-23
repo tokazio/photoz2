@@ -2,10 +2,14 @@ package fr.tokazio.photoz2.back;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
 public class VirtualFolder {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VirtualFolder.class);
 
     @JsonProperty
     private final VirtualFolderList children = new VirtualFolderList();
@@ -68,7 +72,7 @@ public class VirtualFolder {
 
     public void add(final PictLoaderList selectedFiles) {
         pictures.add(selectedFiles);
-        System.out.println(selectedFiles.size() + " files added to " + name);
+        LOGGER.debug(selectedFiles.size() + " files added to " + name);
     }
 
     void setParent(VirtualFolder parent) {
