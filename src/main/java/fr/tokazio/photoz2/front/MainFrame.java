@@ -1,5 +1,6 @@
 package fr.tokazio.photoz2.front;
 
+import fr.tokazio.photoz2.OS;
 import fr.tokazio.photoz2.back.PictLoaderList;
 import fr.tokazio.photoz2.back.VirtualFolder;
 import org.slf4j.Logger;
@@ -49,13 +50,17 @@ public class MainFrame implements ComponentListener, MouseListener {
         butsFolder.add(addFolder, BorderLayout.SOUTH);
         addFolder.setFont(UIUtil.getFont(14));
         addFolder.setBackground(UIUtil.green());
-        addFolder.setForeground(Color.WHITE);
+        if (OS.isWindows()) {
+            addFolder.setForeground(Color.WHITE);
+        }
 
         final JButton removeFolder = new JButton("-");
         butsFolder.add(removeFolder, BorderLayout.SOUTH);
         removeFolder.setFont(UIUtil.getFont(14));
         removeFolder.setBackground(UIUtil.red());
-        removeFolder.setForeground(Color.WHITE);
+        if (OS.isWindows()) {
+            removeFolder.setForeground(Color.WHITE);
+        }
         removeFolder.setVisible(false);
 
         final JPanel center = new JPanel();
